@@ -88,7 +88,7 @@ trait StencilAnalysis extends FatBlockTraversal {
          case l:AbstractLoop[_] if l.v == i => (l,l.size)
          case Reflect(l:AbstractLoop[_],u,es) if l.v == i => (l,l.size)
          case l:AbstractFatLoop if l.v == i => (l,l.size)
-         case Reflect(l:AbstractFatLoop,u,es) if l.v == i => (l,l.size)
+         //case Reflect(l:AbstractFatLoop,u,es) if l.v == i => (l,l.size)
        }
        if (z == Nil) {
          log("    found no loops in the current context with bound var equal to " + strDef(i))
@@ -241,66 +241,66 @@ trait StencilAnalysis extends FatBlockTraversal {
 
         addStencil(s, stencil)
 
-      case DeliteCollectElem(func,cond,par,buf,iFunc,iF,sF,eF,numDynamicChunks) =>
+      case elem: DeliteCollectElem[_,_,_] =>
         val stencil = new Stencil()
 
         log("  ++ found collect elem")
-        log("    func is: " + strDef(func.res))
-        val schedule = buildScheduleForResult(func)
-        log("    schedule for func is: " + schedule)
+        log("    iFunc is: " + strDef(elem.iFunc.res))
+        val schedule = buildScheduleForResult(elem.iFunc)
+        log("    schedule for iFunc is: " + schedule)
         log("    loop bound sym is: " + v.toString)
 
         schedule.foreach(examine(_,v,stencil,schedule))
 
         addStencil(s, stencil)
 
-      case DeliteReduceElem(func,cond,zero,accInit,rV,rFunc,stripFirst,numDynamicChunks) =>
-        val stencil = new Stencil()
+      // case DeliteReduceElem(func,cond,zero,accInit,rV,rFunc,stripFirst,numDynamicChunks) =>
+      //   val stencil = new Stencil()
 
-        log("  ++ found reduce elem")
-        log("    func is: " + strDef(func.res))
-        log("    cond is: " + cond.map(b => strDef(b.res)).mkString(", "))
-        log("    loop bound sym is: " + v.toString)
-        val funcSchedule = buildScheduleForResult(func)
-        log("    schedule for func is: " + funcSchedule)
-        funcSchedule.foreach(examine(_,v,stencil,funcSchedule))
+      //   log("  ++ found reduce elem")
+      //   log("    func is: " + strDef(func.res))
+      //   log("    cond is: " + cond.map(b => strDef(b.res)).mkString(", "))
+      //   log("    loop bound sym is: " + v.toString)
+      //   val funcSchedule = buildScheduleForResult(func)
+      //   log("    schedule for func is: " + funcSchedule)
+      //   funcSchedule.foreach(examine(_,v,stencil,funcSchedule))
 
-        val condSchedule = buildScheduleForResult(cond)
-        log("    schedule for cond is: " + condSchedule)
-        condSchedule.foreach(examine(_,v,stencil,condSchedule))
+      //   val condSchedule = buildScheduleForResult(cond)
+      //   log("    schedule for cond is: " + condSchedule)
+      //   condSchedule.foreach(examine(_,v,stencil,condSchedule))
 
-        val redSchedule = buildScheduleForResult(rFunc)
-        log("    schedule for red is: " + redSchedule)
-        redSchedule.foreach(examine(_,v,stencil,redSchedule))
+      //   val redSchedule = buildScheduleForResult(rFunc)
+      //   log("    schedule for red is: " + redSchedule)
+      //   redSchedule.foreach(examine(_,v,stencil,redSchedule))
 
-        addStencil(s, stencil)
+      //   addStencil(s, stencil)
 
-      case DeliteReduceTupleElem(func,cond,zero,rVPar,rVSeq,rFuncPar,rFuncSeq,stripFirst,numDynamicChunks) =>
-        val stencil = new Stencil
+      // case DeliteReduceTupleElem(func,cond,zero,rVPar,rVSeq,rFuncPar,rFuncSeq,stripFirst,numDynamicChunks) =>
+      //   val stencil = new Stencil
 
-        log("  ++ found reduce tuple elem")
-        log("    func 1 is: " + strDef(func._1.res))
-        log("    func 2 is: " + strDef(func._2.res))
-        log("    cond is: " + cond.map(b => strDef(b.res)).mkString(", "))
-        log("    loop bound sym is: " + v.toString)
+      //   log("  ++ found reduce tuple elem")
+      //   log("    func 1 is: " + strDef(func._1.res))
+      //   log("    func 2 is: " + strDef(func._2.res))
+      //   log("    cond is: " + cond.map(b => strDef(b.res)).mkString(", "))
+      //   log("    loop bound sym is: " + v.toString)
 
-        val func1Schedule = buildScheduleForResult(func._1)
-        log("    schedule for func1 is: " + func1Schedule)
-        func1Schedule.foreach(examine(_,v,stencil,func1Schedule))
+      //   val func1Schedule = buildScheduleForResult(func._1)
+      //   log("    schedule for func1 is: " + func1Schedule)
+      //   func1Schedule.foreach(examine(_,v,stencil,func1Schedule))
 
-        val func2Schedule = buildScheduleForResult(func._2)
-        log("    schedule for func2 is: " + func2Schedule)
-        func2Schedule.foreach(examine(_,v,stencil,func2Schedule))
+      //   val func2Schedule = buildScheduleForResult(func._2)
+      //   log("    schedule for func2 is: " + func2Schedule)
+      //   func2Schedule.foreach(examine(_,v,stencil,func2Schedule))
 
-        val condSchedule = buildScheduleForResult(cond)
-        log("    schedule for cond is: " + condSchedule)
-        condSchedule.foreach(examine(_,v,stencil,condSchedule))
+      //   val condSchedule = buildScheduleForResult(cond)
+      //   log("    schedule for cond is: " + condSchedule)
+      //   condSchedule.foreach(examine(_,v,stencil,condSchedule))
 
-        val redSchedule = buildScheduleForResult(rFuncSeq)
-        log("    schedule for red is: " + redSchedule)
-        redSchedule.foreach(examine(_,v,stencil,redSchedule))
+      //   val redSchedule = buildScheduleForResult(rFuncSeq)
+      //   log("    schedule for red is: " + redSchedule)
+      //   redSchedule.foreach(examine(_,v,stencil,redSchedule))
 
-        addStencil(s, stencil)
+      //   addStencil(s, stencil)
 
       case DeliteHashReduceElem(keyFunc,valFunc,cond,zero,rV,rFunc,buf,numDynamicChunks) =>
         val stencil = new Stencil

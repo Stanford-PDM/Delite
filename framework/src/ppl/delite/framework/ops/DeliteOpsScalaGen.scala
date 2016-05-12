@@ -132,6 +132,8 @@ trait ScalaGenDeliteOps extends ScalaGenLoopsFat with ScalaGenStaticDataDelite w
     stream.println("}")
   }
 
+  def throwException(msg: String): String = "throw new UnsupportedOperationException(\"" + msg + "\")"
+
   def emitWorkLaunch(kernelName: String, rSym: String, allocSym: String, syncSym: String): Unit = {
     stream.println(s"""val executable = new ppl.delite.runtime.executor.DeliteExecutable {
       def run() = ${kernelName}_closure.main_par($rSym,$allocSym,$syncSym)

@@ -172,6 +172,8 @@ trait CGenDeliteOps extends CGenLoopsFat with GenericGenDeliteOps with CGenDelit
     stream.println("}")
   }
 
+  def throwException(msg: String): String = "throw new std::runtime_error(\"" + msg + "\");"
+
   def syncType(actType: String) = "MultiLoopSync<"+actType+"*>"
 
   def emitWorkLaunch(kernelName: String, rSym: String, allocSym: String, syncSym: String): Unit = {

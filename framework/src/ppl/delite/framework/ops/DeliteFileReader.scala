@@ -107,15 +107,10 @@ trait DeliteFileReaderOpsExp extends DeliteFileReaderOps with DeliteArrayOpsExpO
 
     def func: Exp[Int] => Exp[A]
 
-    lazy val body: Def[CA] = copyBodyOrElse(DeliteCollectElem[A,I,CA](
-      func = reifyEffects(func(v)),
-      par = dc_parallelization(allocVal, true),
-      buf = this.buf,
-      numDynamicChunks = this.numDynamicChunks
-    ))
-
+    override def mapFunc(): Exp[A] = func(v)
+    // despite being logically a map, the output size will only be known at runtime
+    override val unknownOutputSize = true
     val dmA = manifest[A]
-    val dmI = manifest[I]
     val dmCA = manifest[CA]
   }
 
@@ -136,28 +131,14 @@ trait DeliteFileReaderOpsExp extends DeliteFileReaderOps with DeliteArrayOpsExpO
   }
 
   abstract class DeliteOpFileReaderFlatI[A:Manifest, I<:DeliteCollection[A]:Manifest, CA<:DeliteCollection[A]:Manifest]
-    extends DeliteOpMapLike[A,I,CA] {
+    extends DeliteOpFlatMapLike[A,I,CA] {
     type OpType <: DeliteOpFileReaderFlatI[A,I,CA]
 
     def func: Exp[Int] => Exp[DeliteCollection[A]]
 
-    final lazy val iFunc: Exp[DeliteCollection[A]] = copyTransformedOrElse(_.iFunc)(func(v))
-    final lazy val iF: Sym[Int] = copyTransformedOrElse(_.iF)(fresh[Int]).asInstanceOf[Sym[Int]]
-    final lazy val eF: Sym[DeliteCollection[A]] = copyTransformedOrElse(_.eF)(fresh[DeliteCollection[A]](iFunc.tp)).asInstanceOf[Sym[DeliteCollection[A]]]
-
-    lazy val body: Def[CA] = copyBodyOrElse(DeliteCollectElem[A,I,CA](
-      iFunc = Some(reifyEffects(this.iFunc)),
-      iF = Some(this.iF),
-      sF = Some(reifyEffects(dc_size(eF))), //note: applying dc_size directly to iFunc can lead to iFunc being duplicated (during mirroring?)
-      eF = Some(this.eF),
-      func = reifyEffects(dc_apply(eF,iF)),
-      par = dc_parallelization(allocVal, true),
-      buf = this.buf,
-      numDynamicChunks = this.numDynamicChunks
-    ))
+    override def flatMapLikeFunc(): Exp[DeliteCollection[A]] = func(v)
 
     val dmA = manifest[A]
-    val dmI = manifest[I]
     val dmCA = manifest[CA]
   }
 

@@ -414,37 +414,40 @@ trait DeliteCodeGenRestage extends RestageFatCodegen
     "(" + args.map(a => quote(a) + ": Rep[" + remap(a.tp) + "]").mkString(",") + ") => "
   }
 
-  def emitBufferElem(op: AbstractFatLoop, elem: DeliteCollectElem[_,_,_]) {
-    // appendable
-    stream.println("{ // appendable")
-    stream.println(makeBoundVarArgs(elem.buf.allocVal,elem.buf.eV,op.v))
-    emitBlock(elem.buf.appendable)
-    stream.println(quote(getBlockResult(elem.buf.appendable)))
-    stream.println("},")
-    // append
-    stream.println("{ // append")
-    stream.println(makeBoundVarArgs(elem.buf.allocVal,elem.buf.eV,op.v))
-    emitBlock(elem.buf.append)
-    stream.println(quote(getBlockResult(elem.buf.append)))
-    stream.println("},")
-    // setSize
-    stream.println("{ // setSize")
-    stream.println(makeBoundVarArgs(elem.buf.allocVal,elem.buf.sV))
-    emitBlock(elem.buf.setSize)
-    stream.println(quote(getBlockResult(elem.buf.setSize)))
-    stream.println("},")
-    // allocRaw
-    stream.println("{ // allocRaw")
-    stream.println(makeBoundVarArgs(elem.buf.allocVal,elem.buf.sV))
-    emitBlock(elem.buf.allocRaw)
-    stream.println(quote(getBlockResult(elem.buf.allocRaw)))
-    stream.println("},")
-    // copyRaw
-    stream.println("{ // copyRaw")
-    stream.println(makeBoundVarArgs(elem.buf.aV2,elem.buf.iV,elem.buf.allocVal,elem.buf.iV2,elem.buf.sV))
-    emitBlock(elem.buf.copyRaw)
-    stream.println(quote(getBlockResult(elem.buf.copyRaw)))
-    stream.println("}")
+  def emitBufferElem(op: AbstractFatLoop, elem: DeliteCollectElem[_,_,_]) = elem.buf match {
+    case out: DeliteCollectFlatOutput[_,_,_] =>
+      stream.println("None, None, None, None, None")
+    case out: DeliteCollectBufferOutput[_,_,_] =>
+      // appendable
+      stream.println("Some({ // appendable")
+      stream.println(makeBoundVarArgs(out.allocVal,out.eV,op.v))
+      emitBlock(out.appendable)
+      stream.println(quote(getBlockResult(out.appendable)))
+      stream.println("}),")
+      // append
+      stream.println("Some({ // append")
+      stream.println(makeBoundVarArgs(out.allocVal,out.eV,op.v))
+      emitBlock(out.append)
+      stream.println(quote(getBlockResult(out.append)))
+      stream.println("}),")
+      // setSize
+      stream.println("Some({ // setSize")
+      stream.println(makeBoundVarArgs(out.allocVal,out.sV))
+      emitBlock(out.setSize)
+      stream.println(quote(getBlockResult(out.setSize)))
+      stream.println("}),")
+      // allocRaw
+      stream.println("Some({ // allocRaw")
+      stream.println(makeBoundVarArgs(out.allocVal,out.sV))
+      emitBlock(out.allocRaw)
+      stream.println(quote(getBlockResult(out.allocRaw)))
+      stream.println("}),")
+      // copyRaw
+      stream.println("Some({ // copyRaw")
+      stream.println(makeBoundVarArgs(out.aV2,out.iV,out.allocVal,out.iV2,out.sV))
+      emitBlock(out.copyRaw)
+      stream.println(quote(getBlockResult(out.copyRaw)))
+      stream.println("})")
   }
 
 
@@ -454,7 +457,7 @@ trait DeliteCodeGenRestage extends RestageFatCodegen
       case (sym, elem: DeliteCollectElem[_,_,_]) =>
         stream.println("// " + sym.toString + "=" + elem + " / " + Def.unapply(sym))
         stream.println("val " + quote(sym) + " = collect[" + remap(elem.mA) + "," + remap(elem.mI) + "," + remap(elem.mCA) + "](")
-        // stream.println("val " + quote(sym) + " = collect(")
+
         // loop size
         stream.println(quote(op.size) + ",")
         // alloc func
@@ -463,11 +466,11 @@ trait DeliteCodeGenRestage extends RestageFatCodegen
         emitBlock(elem.buf.alloc)
         stream.println(quote(getBlockResult(elem.buf.alloc)))
         stream.println("},")
-        // func
+        // iFunc
         stream.println("{")
         stream.println(makeBoundVarArgs(elem.buf.eV,op.v))
-        emitBlock(elem.func)
-        stream.println(quote(getBlockResult(elem.func)))
+        emitBlock(elem.iFunc)
+        stream.println(quote(getBlockResult(elem.iFunc)))
         stream.println("},")
         // update
         stream.println("{")
@@ -480,20 +483,9 @@ trait DeliteCodeGenRestage extends RestageFatCodegen
         stream.println(makeBoundVarArgs(elem.buf.allocVal))
         emitBlock(elem.buf.finalizer)
         stream.println(quote(getBlockResult(elem.buf.finalizer)))
-        // conditions
         stream.println("},")
-        stream.print("scala.List(")
-        for (i <- 0 until elem.cond.length) {
-          stream.println("{")
-          stream.println(makeBoundVarArgs(op.v))
-          emitBlock(elem.cond(i))
-          stream.println(quote(getBlockResult(elem.cond(i))))
-          stream.print("}")
-          if (i < elem.cond.length - 1) stream.println(",")
-        }
-        stream.println("),")
-        // par
-        stream.println("\"" + elem.par.toString + "\",")
+        // unknownOutputSize
+        stream.println(elem.unknownOutputSize + ",")
         // buffer
         emitBufferElem(op, elem)
         stream.println(")")
@@ -517,41 +509,20 @@ trait DeliteCodeGenRestage extends RestageFatCodegen
         stream.println("val " + quote(sym) + " = reduce(")
         // loop size
         stream.println(quote(op.size) + ",")
-        // func
+        // iFunc
         stream.println("{")
         stream.println(makeBoundVarArgs(op.v))
-        emitBlock(elem.func)
-        stream.println(quote(getBlockResult(elem.func)))
+        emitBlock(elem.iFunc)
+        stream.println(quote(getBlockResult(elem.iFunc)))
         stream.println("},")
-        // conditions
-        stream.print("scala.List(")
-        for (i <- 0 until elem.cond.length) {
-          stream.println("{")
-          stream.println(makeBoundVarArgs(op.v))
-          emitBlock(elem.cond(i))
-          stream.println(quote(getBlockResult(elem.cond(i))))
-          stream.print("}")
-          if (i < elem.cond.length - 1) stream.println(",")
-        }
-        stream.println("),")
-        // zero
-        stream.println("{")
-        emitBlock(elem.zero)
-        stream.println(quote(getBlockResult(elem.zero)))
-        stream.println("},")
-        // accInit
-        stream.println("{")
-        emitBlock(elem.accInit)
-        stream.println(quote(getBlockResult(elem.accInit)))
-        stream.println("},")
+        // unknownOutputSize
+        stream.println(elem.unknownOutputSize + ",")
         // rFunc
         stream.println("{")
         stream.println(makeBoundVarArgs(elem.rV._1,elem.rV._2))
         emitBlock(elem.rFunc)
         stream.println(quote(getBlockResult(elem.rFunc)))
-        stream.println("},")
-        // stripFirst
-        stream.println(elem.stripFirst)
+        stream.println("}")
         stream.println(")")
     }
   }

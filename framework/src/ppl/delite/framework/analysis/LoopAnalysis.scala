@@ -97,7 +97,7 @@ trait NestedLoopMappingAnalysis extends FatBlockTraversal with LoopFusionOpt wit
 
   private def distinctAccess(body: Def[Any]): Boolean = {
     body match {
-      case elem: DeliteCollectElem[_,_,_] if (elem.cond == Nil) => true
+      case elem: DeliteCollectElem[_,_,_] if getOutputStrategy(elem) == OutputFlat => true
       case elem: DeliteForeachElem[_] => true
       case _ => false
     }
@@ -320,10 +320,10 @@ trait NestedLoopMappingAnalysis extends FatBlockTraversal with LoopFusionOpt wit
       case elem: DeliteHashCollectElem[_,_,_,_,_,_] => elem.keyFunc :: elem.valFunc :: elem.cond
       case elem: DeliteHashReduceElem[_,_,_,_] => elem.keyFunc :: elem.valFunc :: elem.cond
       case elem: DeliteHashIndexElem[_,_] => elem.keyFunc :: elem.cond
-      case elem: DeliteCollectElem[_,_,_] => elem.func :: elem.cond
+      case elem: DeliteCollectElem[_,_,_] => List(elem.iFunc)
       case elem: DeliteForeachElem[_] => List(elem.func)
-      case elem: DeliteReduceElem[_] => elem.func :: elem.cond
-      case elem: DeliteReduceTupleElem[_,_] => elem.func._1 :: elem.func._2 :: elem.cond
+      // case elem: DeliteReduceElem[_] => elem.func :: elem.cond
+      // case elem: DeliteReduceTupleElem[_,_] => elem.func._1 :: elem.func._2 :: elem.cond
     }
   }
 

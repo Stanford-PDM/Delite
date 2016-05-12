@@ -12,14 +12,8 @@ trait DeliteCollection[A]
 trait DeliteCollectionOpsExp extends ExceptionOpsExp with BaseFatExp { this: DeliteOpsExp =>
 
   /**
-   * Default delite collection op implementations
+   * Default implementations for delite collection operations
    */
-
-  def dc_parallelization[A:Manifest](x: Exp[DeliteCollection[A]], hasConditions: Boolean)(implicit ctx: SourceContext) = {
-    if (hasConditions) ParSimpleBuffer else ParFlat // default
-  }
-    
-  // -- ParFlat methods
 
   def dc_size[A:Manifest](x: Exp[DeliteCollection[A]])(implicit ctx: SourceContext) = x match {
     case Def(e: DeliteOpMap[_,_,_]) => e.size
@@ -30,12 +24,22 @@ trait DeliteCollectionOpsExp extends ExceptionOpsExp with BaseFatExp { this: Del
   def dc_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int])(implicit ctx: SourceContext): Exp[A] = {
     undefined("dc_apply", x)
   }
-  
+
+  // -- Used by OutputFlat, and OutputBuffer (but only on GPU)
+
   def dc_update[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int], y: Exp[A])(implicit ctx: SourceContext): Exp[Unit] = {
     undefined("dc_update", x)
   }
-  
-  // -- ParBuffer methods
+
+  // -- OutputBuffer methods
+
+  /* Returns true if the collection can be used as a linear buffer for collect
+   * elems (strategy OutputBuffer, need to implement the methods below).
+   * Otherwise strategy OutputFlat has to be used, implement the method above.
+   */
+  def dc_linear_buffer[A:Manifest](x: Exp[DeliteCollection[A]])(implicit ctx: SourceContext): Boolean = {
+    true
+  }
    
   def dc_set_logical_size[A:Manifest](x: Exp[DeliteCollection[A]], y: Exp[Int])(implicit ctx: SourceContext): Exp[Unit] = {
     undefined("dc_alloc", x)

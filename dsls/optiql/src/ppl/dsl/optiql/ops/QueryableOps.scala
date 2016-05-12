@@ -174,12 +174,15 @@ trait QueryableOpsExp extends QueryableOps with EffectExp with BaseFatExp with D
   }
 
 
-  case class QueryableCountWhere[T:Manifest](in: Exp[Table[T]], cond: Exp[T] => Exp[Boolean]) extends DeliteOpFilterReduce[T,Int] {
+  case class QueryableCountWhere[T:Manifest](in: Exp[Table[T]], cond: Exp[T] => Exp[Boolean]) extends DeliteOpFoldLike[Boolean,Int] {
     val size = copyTransformedOrElse(_.size)(in.size)
-    def zero = unit(0)
-    def func = a => unit(1)       
-    def reduce = (a,b) => a + b
-    
+    val accInit = unit(0)
+
+    override def flatMapLikeFunc(): Exp[DeliteCollection[Boolean]] =
+      DeliteArray.singletonInLoop(cond(dc_apply(in,this.v)), this.v)
+    override def foldPar(acc: Exp[Int], add: Exp[Boolean]): Exp[Int] = if (add) acc + unit(1) else acc
+    override def redSeq(x1: Exp[Int], x2: Exp[Int]): Exp[Int] = x1 + x2
+
     val mT = manifest[T]
   }
   

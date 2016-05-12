@@ -207,11 +207,12 @@ trait DeliteArrayBufferOpsExp extends DeliteArrayBufferOps with DeliteCollection
     override def alloc(len: Exp[Int]) = darray_buffer_new[B](len) //buffer
     val size = copyTransformedOrElse(_.size)(in.length)
   }
-  
-  case class DeliteArrayBufferReduce[A:Manifest](in: Exp[DeliteArrayBuffer[A]], func: (Exp[A], Exp[A]) => Exp[A], zero: Exp[A])
-    extends DeliteOpReduce[A] {
-    
-    val size = copyTransformedOrElse(_.size)(in.length)    
+
+  case class DeliteArrayBufferReduce[A:Manifest](in: Exp[DeliteArrayBuffer[A]], reduce: (Exp[A], Exp[A]) => Exp[A], zero: Exp[A])
+    extends DeliteOpReduceZero[A] {
+
+    val size = copyTransformedOrElse(_.size)(in.length)
+    val accInit = reifyEffects(zero)
   }
 
   case class DeliteArrayBufferGroupBy[A:Manifest,K:Manifest](in: Exp[DeliteArrayBuffer[A]], keyFunc: Exp[A] => Exp[K]) 
@@ -260,35 +261,28 @@ trait DeliteArrayBufferOpsExp extends DeliteArrayBufferOps with DeliteCollection
   def isDeliteArrayBufferTpe(x: Manifest[_])(implicit ctx: SourceContext) = isSubtype(x.erasure,classOf[DeliteArrayBuffer[_]])    
   def isDeliteArrayBuffer[A](x: Exp[DeliteCollection[A]])(implicit ctx: SourceContext) = isDeliteArrayBufferTpe(x.tp)
   def asDeliteArrayBuffer[A](x: Exp[DeliteCollection[A]])(implicit ctx: SourceContext) = x.asInstanceOf[Exp[DeliteArrayBuffer[A]]]
-    
-  override def dc_size[A:Manifest](x: Exp[DeliteCollection[A]])(implicit ctx: SourceContext) = { 
+
+  override def dc_size[A:Manifest](x: Exp[DeliteCollection[A]])(implicit ctx: SourceContext) = {
     if (isDeliteArrayBuffer(x)) asDeliteArrayBuffer(x).length
     else super.dc_size(x)
   }
-  
+
   override def dc_apply[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int])(implicit ctx: SourceContext) = {
     if (isDeliteArrayBuffer(x)) asDeliteArrayBuffer(x).apply(n)
     else super.dc_apply(x,n)
   }
-  
+
   override def dc_update[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {
     if (isDeliteArrayBuffer(x)) asDeliteArrayBuffer(x).update(n,y)
-    else super.dc_update(x,n,y)        
+    else super.dc_update(x,n,y)
   }
-  
+
   override def dc_set_logical_size[A:Manifest](x: Exp[DeliteCollection[A]], y: Exp[Int])(implicit ctx: SourceContext) = {
     if (isDeliteArrayBuffer(x)) {
       val buf = asDeliteArrayBuffer(x)
       darray_buffer_set_length(buf, y)
     }
-    else super.dc_set_logical_size(x,y)        
-  }
-  
-  override def dc_parallelization[A:Manifest](x: Exp[DeliteCollection[A]], hasConditions: Boolean)(implicit ctx: SourceContext) = {
-    if (isDeliteArrayBuffer(x)) {
-      if (hasConditions) ParSimpleBuffer else ParFlat
-    }
-    else super.dc_parallelization(x, hasConditions)
+    else super.dc_set_logical_size(x,y)
   }
 
   override def dc_appendable[A:Manifest](x: Exp[DeliteCollection[A]], i: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {
@@ -300,12 +294,12 @@ trait DeliteArrayBufferOpsExp extends DeliteArrayBufferOps with DeliteCollection
     if (isDeliteArrayBuffer(x)) { asDeliteArrayBuffer(x) += y; }
     else super.dc_append(x,i,y)
   }
-  
+
   override def dc_alloc[A:Manifest,CA<:DeliteCollection[A]:Manifest](x: Exp[CA], size: Exp[Int])(implicit ctx: SourceContext): Exp[CA] = {
     if (isDeliteArrayBuffer(x)) darray_buffer_new[A](size,size).asInstanceOf[Exp[CA]] //flat alloc
     else super.dc_alloc[A,CA](x,size)
-  } 
-  
+  }
+
   override def dc_copy[A:Manifest](src: Exp[DeliteCollection[A]], srcPos: Exp[Int], dst: Exp[DeliteCollection[A]], dstPos: Exp[Int], size: Exp[Int])(implicit ctx: SourceContext): Exp[Unit] = {
     if (isDeliteArrayBuffer(src) && isDeliteArrayBuffer(dst)) {
       darray_copy(darray_buffer_raw_data(asDeliteArrayBuffer(src)), srcPos, darray_buffer_raw_data(asDeliteArrayBuffer(dst)), dstPos, size)
@@ -327,24 +321,24 @@ trait DeliteArrayBufferOpsExp extends DeliteArrayBufferOps with DeliteCollection
     case e@DeliteArrayBufferNewImm(d,l) => reflectPure(new {override val original = Some(f,e) } with DeliteArrayBufferNewImm(f(d),f(l))(e.mA))(mtype(manifest[A]),implicitly[SourceContext])
     case Reflect(e@DeliteArrayBufferNewImm(d,l), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferNewImm(f(d),f(l))(e.mA), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
     case Reflect(e@DeliteArrayBufferNew(p,l), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferNew(f(p),f(l))(e.mA,ctx), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
-    case e@DeliteArrayBufferMap(in,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferMap(f(in),f(g))(e.dmA,e.dmB,ctx))(mtype(manifest[A]),implicitly[SourceContext])
-    case e@DeliteArrayBufferMapIndices(s,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferMapIndices(f(s),f(g))(e.dmA))(mtype(manifest[A]),implicitly[SourceContext])
+    case e@DeliteArrayBufferMap(in,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferMap(f(in),f(g))(e.dmA,e.dmO,ctx))(mtype(manifest[A]),implicitly[SourceContext])
+    case e@DeliteArrayBufferMapIndices(s,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferMapIndices(f(s),f(g))(e.dmO))(mtype(manifest[A]),implicitly[SourceContext])
     case e@DeliteArrayBufferFilter(in,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferFilter(f(in),f(g))(e.dmA))(mtype(manifest[A]),implicitly[SourceContext])
-    case e@DeliteArrayBufferZipWith(a,b,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferZipWith(f(a),f(b),f(g))(e.dmA,e.dmB,e.dmR))(mtype(manifest[A]),implicitly[SourceContext])
+    case e@DeliteArrayBufferZipWith(a,b,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferZipWith(f(a),f(b),f(g))(e.dmA,e.dmB,e.dmO))(mtype(manifest[A]),implicitly[SourceContext])
     case e@DeliteArrayBufferReduce(in,g,z) => e.asInstanceOf[DeliteArrayBufferReduce[A]] match { //scalac typer bug
-      case e@DeliteArrayBufferReduce(in,g,z) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferReduce(f(in),f(g),f(z))(e.dmA))(mtype(manifest[A]),implicitly[SourceContext])
+      case e@DeliteArrayBufferReduce(in,g,z) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferReduce(f(in),f(g),f(z))(manifest[A]))(mtype(manifest[A]),implicitly[SourceContext])
     }    
     case e@DeliteArrayBufferGroupBy(in,k) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferGroupBy(f(in),f(k))(mtype(e.dmV),mtype(e.dmK)))(mtype(manifest[A]),implicitly[SourceContext])
-    case e@DeliteArrayBufferFlatMap(in,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferFlatMap(f(in),f(g))(mtype(e.dmA),mtype(e.dmB)))(mtype(manifest[A]),implicitly[SourceContext])
-    case Reflect(e@DeliteArrayBufferMap(in,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferMap(f(in),f(g))(e.dmA,e.dmB,ctx), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
-    case Reflect(e@DeliteArrayBufferMapIndices(s,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferMapIndices(f(s),f(g))(e.dmA), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
+    case e@DeliteArrayBufferFlatMap(in,g) => reflectPure(new { override val original = Some(f,e) } with DeliteArrayBufferFlatMap(f(in),f(g))(mtype(e.dmA),mtype(e.dmO)))(mtype(manifest[A]),implicitly[SourceContext])
+    case Reflect(e@DeliteArrayBufferMap(in,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferMap(f(in),f(g))(e.dmA,e.dmO,ctx), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
+    case Reflect(e@DeliteArrayBufferMapIndices(s,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferMapIndices(f(s),f(g))(e.dmO), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
     case Reflect(e@DeliteArrayBufferFilter(in,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferFilter(f(in),f(g))(e.dmA), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
-    case Reflect(e@DeliteArrayBufferZipWith(a,b,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferZipWith(f(a),f(b),f(g))(e.dmA,e.dmB,e.dmR), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
+    case Reflect(e@DeliteArrayBufferZipWith(a,b,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferZipWith(f(a),f(b),f(g))(e.dmA,e.dmB,e.dmO), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
     case Reflect(e@DeliteArrayBufferReduce(in,g,z), u, es) => e.asInstanceOf[DeliteArrayBufferReduce[A]] match { //scalac typer bug
-      case e@DeliteArrayBufferReduce(in,g,z) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferReduce(f(in),f(g),f(z))(e.dmA), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
+      case e@DeliteArrayBufferReduce(in,g,z) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferReduce(f(in),f(g),f(z))(manifest[A]), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
     }    
     case Reflect(e@DeliteArrayBufferGroupBy(in,k), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferGroupBy(f(in),f(k))(mtype(e.dmV),mtype(e.dmK)), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
-    case Reflect(e@DeliteArrayBufferFlatMap(in,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferFlatMap(f(in),f(g))(mtype(e.dmA),mtype(e.dmB)), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
+    case Reflect(e@DeliteArrayBufferFlatMap(in,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferFlatMap(f(in),f(g))(mtype(e.dmA),mtype(e.dmO)), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
     case Reflect(e@DeliteArrayBufferForeach(in,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferForeach(f(in),f(g))(mtype(e.mA)), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
     case Reflect(e@DeliteArrayBufferForIndices(in,g), u, es) => reflectMirrored(Reflect(new { override val original = Some(f,e) } with DeliteArrayBufferForIndices(f(in),f(g))(mtype(e.mA),ctx), mapOver(f,u), f(es)))(mtype(manifest[A]), ctx)
     case _ => super.mirror(e,f)
