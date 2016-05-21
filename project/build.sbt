@@ -2,3 +2,4 @@
 scalacOptions += "-feature"
 scalacOptions += "-deprecation"
 scalacOptions += "-unchecked"
+
