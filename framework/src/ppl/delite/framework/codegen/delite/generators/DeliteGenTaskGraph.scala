@@ -173,10 +173,10 @@ trait DeliteGenTaskGraph extends DeliteCodegen with DeliteKernelCodegen with Loo
         case e: GenerationFailedException => // no generator found
           kStream.close()
           outFile.delete()
-          if (Config.dumpException) {
+          //if (Config.dumpException) {
             System.err.println(gen.toString + ":" + (sym.map(quote)))
             e.printStackTrace
-          }
+          //}
           if (Config.strictGeneration(gen.toString, e)) throw e
       }
     }

@@ -73,7 +73,7 @@ trait SimpleVectorExp extends SimpleVectorCompiler with SimpleVectorScalaOpsPkgE
   def getCodeGenPkg(t: Target{val IR: SimpleVectorExp.this.type}) : GenericFatCodegen{val IR: SimpleVectorExp.this.type} = {
     t match {
       case _:TargetScala => new SimpleVectorCodegenScala{val IR: SimpleVectorExp.this.type = SimpleVectorExp.this}
-      case _:TargetCuda => new SimpleVectorCodegenCuda{val IR: SimpleVectorExp.this.type = SimpleVectorExp.this}
+      //case _:TargetCuda => new SimpleVectorCodegenCuda{val IR: SimpleVectorExp.this.type = SimpleVectorExp.this}
       case _ => throw new RuntimeException("simple vector does not support this target")
     }
   }
@@ -100,7 +100,7 @@ trait SimpleVectorCodegenBase extends GenericFatCodegen {
 }
 
 trait SimpleVectorCodegenScala extends SimpleVectorCodegenBase with SimpleVectorScalaCodeGenPkg
-  with ScalaGenDeliteOps with ScalaGenDeliteCollectionOps with DeliteScalaGenAllOverrides {
+  with ScalaGenDeliteOps with DeliteScalaGenAllOverrides {
 
   val IR: DeliteApplication with SimpleVectorExp
 }

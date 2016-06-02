@@ -176,7 +176,7 @@ trait QueryableOpsExp extends QueryableOps with EffectExp with BaseFatExp with D
 
   case class QueryableCountWhere[T:Manifest](in: Exp[Table[T]], cond: Exp[T] => Exp[Boolean]) extends DeliteOpFoldLike[Boolean,Int] {
     val size = copyTransformedOrElse(_.size)(in.size)
-    val accInit = unit(0)
+    val accInit = Block(unit(0)) // TODO: DAMIEN why is this 
 
     override def flatMapLikeFunc(): Exp[DeliteCollection[Boolean]] =
       DeliteArray.singletonInLoop(cond(dc_apply(in,this.v)), this.v)

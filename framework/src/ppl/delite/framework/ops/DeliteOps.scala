@@ -197,15 +197,22 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
     val dmCO = manifest[CO]
   }
 
-  // TODO: DAMIEN: find out where this is supposed to go
   object ReifyResultEffects {
     def unapply(d: Block[_]): Option[(Exp[Any], List[Exp[Any]])] = d match {
       case Block(Def(Reify(x, _, list))) => Some((x, list.filterNot(_ == x)))
       case Block(x) => Some((x, Nil))
+      case _ => None
     }
   }
 
-  // TODO: DAMIEN: find out where this is supposed to go
+  object Conditional {
+    def unapply(d: Def[_]): Option[(Exp[Boolean], Block[Any], Block[Any])] = d match {
+      case ite: DeliteOpCondition[_] => Some(ite.cond, ite.thenp, ite.elsep)
+      case ite: IfThenElse[_] => Some(ite.cond, ite.thenp, ite.elsep)
+      case _ => None
+    }
+  }
+
   override def getCollectElemType(elem: DeliteCollectBaseElem[_,_]): DeliteCollectType = {
     elem.iFunc match {
       case ReifyResultEffects((iFuncRes, effects)) => iFuncRes match {
@@ -215,10 +222,10 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
           else
             CollectMap(siElem, effects)
 
-        case Def(EatReflect(ite: DeliteOpCondition[_])) => (ite.thenp, ite.elsep) match {
+        case Def(EatReflect(Conditional(cond, thenp, elsep))) => (thenp, elsep) match {
           case (ReifyResultEffects((Def(EatReflect(DeliteArraySingletonInLoop(thenElem,_)))), thenEffects),
           ReifyResultEffects((Def(EatReflect(DeliteArrayEmptyInLoop(_,_))), elseEffects))) =>
-            CollectFilter(effects, ite.cond, thenElem, thenEffects, elseEffects)
+            CollectFilter(effects, cond, thenElem, thenEffects, elseEffects)
           case _ => CollectFlatMap
         }
 
@@ -614,7 +621,6 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
   abstract class DeliteOpForeach[A:Manifest](implicit ctx: SourceContext) extends DeliteOpLoop[Unit] { //DeliteOp[Unit] {
     type OpType <: DeliteOpForeach[A]
     val in: Exp[DeliteCollection[A]]
-    val size: Exp[Int]
     def func: Exp[A] => Exp[Unit]
     def sync: Exp[Int] => Exp[List[Any]] // TODO: need to extend runtime to do something with sync in multiloop
 

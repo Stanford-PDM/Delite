@@ -18,69 +18,69 @@ trait DeliteArrayOps extends Base {
   var partitionArray: Boolean = false
 
   object DeliteArray {
-    def apply[T:Manifest](length: Rep[Int])(implicit ctx: SourceContext) = darray_new(length)
-    def imm[T:Manifest](length: Rep[Int])(implicit ctx: SourceContext) = darray_new_immutable(length)
-    def fromFunction[T:Manifest](length: Rep[Int])(func: Rep[Int] => Rep[T])(implicit ctx: SourceContext) = darray_fromfunction(length, func)
-    def sortIndices(length: Rep[Int])(comparator: (Rep[Int],Rep[Int]) => Rep[Int])(implicit ctx: SourceContext) = darray_sortIndices(length, comparator)
+    def apply[T:Manifest](length: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]] = darray_new(length)
+    def imm[T:Manifest](length: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]] = darray_new_immutable(length)
+    def fromFunction[T:Manifest](length: Rep[Int])(func: Rep[Int] => Rep[T])(implicit ctx: SourceContext): Rep[DeliteArray[T]] = darray_fromfunction(length, func)
+    def sortIndices(length: Rep[Int])(comparator: (Rep[Int], Rep[Int]) => Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[Int]] = darray_sortIndices(length, comparator)
     // Used by the new loop fusion, map is represented as flatMap(singleton), and then codegen
     // specializes to generate map code. Therefore don't want to move singleton out of the loop,
     // because then it might be allocated needlessly.
-    // TODO: DAMIEN: Understand comment above
-    def singletonInLoop[T:Manifest](elem: => Rep[T], index: Rep[Int])(implicit ctx: SourceContext) = darray_singletonInLoop(elem, index)
-    def emptyInLoop[T:Manifest](index: Rep[Int])(implicit ctx: SourceContext) = darray_emptyInLoop(index)
+    def singletonInLoop[T:Manifest](elem: => Rep[T], index: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]] = darray_singletonInLoop(elem, index)
+    def emptyInLoop[T:Manifest](index: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]] = darray_emptyInLoop(index)
   }
 
   implicit def repDArrayToDArrayOps[T:Manifest](da: Rep[DeliteArray[T]])(implicit ctx: SourceContext) = new DeliteArrayOpsCls(da)
 
   class DeliteArrayOpsCls[T:Manifest](da: Rep[DeliteArray[T]])(implicit ctx: SourceContext) {
     def length: Rep[Int] = darray_length(da)
-    def apply(i: Rep[Int]): Rep[T] = darray_apply(da,i)
-    def update(i: Rep[Int], x: Rep[T]): Rep[Unit] = darray_update(da,i,x)
-    def mutable = darray_mutable(da)
-    def map[B:Manifest](f: Rep[T] => Rep[B]) = darray_map(da,f)
-    def zip[B:Manifest,R:Manifest](y: Rep[DeliteArray[B]])(f: (Rep[T],Rep[B]) => Rep[R]): Rep[DeliteArray[R]] = darray_zipwith(da,y,f)
-    def reduce(f: (Rep[T],Rep[T]) => Rep[T], zero: Rep[T]): Rep[T] = darray_reduce(da,f,zero)
-    def foreach(f: Rep[T] => Rep[Unit]) = darray_foreach(da,f)
-    def filter(f: Rep[T] => Rep[Boolean]) = darray_filter(da,f)
-    def flatMap[B:Manifest](func: Rep[T] => Rep[DeliteArray[B]])(implicit ctx: SourceContext) = darray_flatmap(da,func)
-    def groupByReduce[K:Manifest,V:Manifest](key: Rep[T] => Rep[K], value: Rep[T] => Rep[V], reduce: (Rep[V],Rep[V]) => Rep[V]) = darray_groupByReduce(da,key,value,reduce)
-    def mkString(del: Rep[String]) = darray_mkstring(da,del)
-    def union(rhs: Rep[DeliteArray[T]]) = darray_union(da,rhs)
-    def intersect(rhs: Rep[DeliteArray[T]]) = darray_intersect(da,rhs)
-    def take(n: Rep[Int]) = darray_take(da,n)
-    def sort = darray_sort(da)
-    def toSeq = darray_toseq(da)
+    def apply(i: Rep[Int]): Rep[T] = darray_apply(da, i)
+    def update(i: Rep[Int], x: Rep[T]): Rep[Unit] = darray_update(da, i, x)
+    def mutable: Rep[DeliteArray[T]] = darray_mutable(da)
+    def map[B:Manifest](f: Rep[T] => Rep[B]): Rep[DeliteArray[B]] = darray_map(da, f)
+    def zip[B:Manifest,R:Manifest](y: Rep[DeliteArray[B]])(f: (Rep[T], Rep[B]) => Rep[R]): Rep[DeliteArray[R]] = darray_zipwith(da, y, f)
+    def reduce(f: (Rep[T], Rep[T]) => Rep[T], zero: Rep[T]): Rep[T] = darray_reduce(da, f, zero)
+    def foreach(f: Rep[T] => Rep[Unit]): Rep[Unit] = darray_foreach(da, f)
+    def filter(f: Rep[T] => Rep[Boolean]): Rep[DeliteArray[T]] = darray_filter(da, f)
+    def flatMap[B:Manifest](func: Rep[T] => Rep[DeliteArray[B]])(implicit ctx: SourceContext): Rep[DeliteArray[B]] = darray_flatmap(da, func)
+    def groupByReduce[K:Manifest, V:Manifest](key: Rep[T] => Rep[K], value: Rep[T] => Rep[V], reduce: (Rep[V], Rep[V]) => Rep[V]): Rep[DeliteMap[K, V]] = darray_groupByReduce(da, key, value, reduce)
+    def mkString(del: Rep[String]): Rep[String] = darray_mkstring(da, del)
+    def union(rhs: Rep[DeliteArray[T]]): Rep[DeliteArray[T]] = darray_union(da, rhs)
+    def intersect(rhs: Rep[DeliteArray[T]]): Rep[DeliteArray[T]] = darray_intersect(da, rhs)
+    def take(n: Rep[Int]): Rep[DeliteArray[T]] = darray_take(da, n)
+    def sort: Rep[DeliteArray[T]] = darray_sort(da)
+    def toSeq: Rep[Seq[T]] = darray_toseq(da)
   }
 
   def darray_new[T:Manifest](length: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
   def darray_new_immutable[T:Manifest](length: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
+  def darray_fromfunction[T:Manifest](length: Rep[Int], func: Rep[Int] => Rep[T])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
+  def darray_sortIndices(length: Rep[Int], comparator: (Rep[Int],Rep[Int]) => Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[Int]]
+  def darray_singletonInLoop[T:Manifest](elem: => Rep[T], index: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
+  def darray_emptyInLoop[T:Manifest](index: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
+
   def darray_length[T:Manifest](da: Rep[DeliteArray[T]])(implicit ctx: SourceContext): Rep[Int]
   def darray_apply[T:Manifest](da: Rep[DeliteArray[T]], i: Rep[Int])(implicit ctx: SourceContext): Rep[T]
   def darray_update[T:Manifest](da: Rep[DeliteArray[T]], i: Rep[Int], x: Rep[T])(implicit ctx: SourceContext): Rep[Unit]
-  def darray_clone[T:Manifest](d: Rep[DeliteArray[T]])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
-  def darray_soft_clone[T:Manifest](d: Rep[DeliteArray[T]])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
   def darray_mutable[T:Manifest](d: Rep[DeliteArray[T]])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
-  def darray_copy[T:Manifest](src: Rep[DeliteArray[T]], srcPos: Rep[Int], dest: Rep[DeliteArray[T]], destPos: Rep[Int], len: Rep[Int])(implicit ctx: SourceContext): Rep[Unit]
   def darray_map[A:Manifest,B:Manifest](a: Rep[DeliteArray[A]], f: Rep[A] => Rep[B])(implicit ctx: SourceContext): Rep[DeliteArray[B]]
   def darray_zipwith[A:Manifest,B:Manifest,R:Manifest](x: Rep[DeliteArray[A]], y: Rep[DeliteArray[B]], f: (Rep[A],Rep[B]) => Rep[R])(implicit ctx: SourceContext): Rep[DeliteArray[R]]
   def darray_reduce[A:Manifest](x: Rep[DeliteArray[A]], f: (Rep[A],Rep[A]) => Rep[A], zero: Rep[A])(implicit ctx: SourceContext): Rep[A]
   def darray_foreach[A:Manifest](d: Rep[DeliteArray[A]], f: Rep[A] => Rep[Unit])(implicit ctx: SourceContext): Rep[Unit]
   def darray_filter[A:Manifest](x: Rep[DeliteArray[A]], f: Rep[A] => Rep[Boolean])(implicit ctx: SourceContext): Rep[DeliteArray[A]]
-  def darray_groupByReduce[A:Manifest,K:Manifest,V:Manifest](da: Rep[DeliteArray[A]], key: Rep[A] => Rep[K], value: Rep[A] => Rep[V], reduce: (Rep[V],Rep[V]) => Rep[V])(implicit ctx: SourceContext): Rep[DeliteMap[K,V]]
   def darray_flatmap[A:Manifest,B:Manifest](da: Rep[DeliteArray[A]], func: Rep[A] => Rep[DeliteArray[B]])(implicit ctx: SourceContext): Rep[DeliteArray[B]]
+  def darray_groupByReduce[A:Manifest,K:Manifest,V:Manifest](da: Rep[DeliteArray[A]], key: Rep[A] => Rep[K], value: Rep[A] => Rep[V], reduce: (Rep[V],Rep[V]) => Rep[V])(implicit ctx: SourceContext): Rep[DeliteMap[K,V]]
   def darray_mkstring[A:Manifest](a: Rep[DeliteArray[A]], del: Rep[String])(implicit ctx: SourceContext): Rep[String]
   def darray_union[A:Manifest](lhs: Rep[DeliteArray[A]], rhs: Rep[DeliteArray[A]])(implicit ctx: SourceContext): Rep[DeliteArray[A]]
   def darray_intersect[A:Manifest](lhs: Rep[DeliteArray[A]], rhs: Rep[DeliteArray[A]])(implicit ctx: SourceContext): Rep[DeliteArray[A]]
   def darray_take[A:Manifest](lhs: Rep[DeliteArray[A]], n: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[A]]
   def darray_sort[A:Manifest](lhs: Rep[DeliteArray[A]])(implicit ctx: SourceContext): Rep[DeliteArray[A]]
-  def darray_sortIndices(length: Rep[Int], comparator: (Rep[Int],Rep[Int]) => Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[Int]]
+  def darray_toseq[A:Manifest](a: Rep[DeliteArray[A]])(implicit ctx: SourceContext): Rep[Seq[A]]
+
+  def darray_clone[T:Manifest](d: Rep[DeliteArray[T]])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
+  def darray_soft_clone[T:Manifest](d: Rep[DeliteArray[T]])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
+  def darray_copy[T:Manifest](src: Rep[DeliteArray[T]], srcPos: Rep[Int], dest: Rep[DeliteArray[T]], destPos: Rep[Int], len: Rep[Int])(implicit ctx: SourceContext): Rep[Unit]
   def darray_range(st: Rep[Int], en: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[Int]]
   def darray_fromseq[A:Manifest](elems: Seq[Rep[A]])(implicit ctx: SourceContext): Rep[DeliteArray[A]]
-  def darray_toseq[A:Manifest](a: Rep[DeliteArray[A]])(implicit ctx: SourceContext): Rep[Seq[A]]
-  def darray_fromfunction[T:Manifest](length: Rep[Int], func: Rep[Int] => Rep[T])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
-  def darray_singletonInLoop[T:Manifest](elem: => Rep[T], index: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
-  def darray_emptyInLoop[T:Manifest](index: Rep[Int])(implicit ctx: SourceContext): Rep[DeliteArray[T]]
-
   def darray_set_act_buf[A:Manifest](da: Rep[DeliteArray[A]]): Rep[Unit]
 }
 
@@ -95,10 +95,9 @@ trait DeliteArrayOpsExp extends DeliteArrayCompilerOps with DeliteArrayStructTag
   //////////////////
   // codegen ops
 
-  case class DeliteArrayNew[T](length: Exp[Int], m:Manifest[T], tag: PartitionTag[T]) extends Def[DeliteArray[T]] //pass in manifest explicitly so it becomes part of equality (cse) check
-  // TODO: DAMIEN: Find where this is used and how
+  case class DeliteArrayNew[T](length: Exp[Int], m: Manifest[T], tag: PartitionTag[T]) extends Def[DeliteArray[T]] //pass in manifest explicitly so it becomes part of equality (cse) check
   case class DeliteArraySingletonInLoop[T:Manifest](elem: Block[T], index: Exp[Int]) extends DefWithManifest[T,DeliteArray[T]]
-  case class DeliteArrayEmptyInLoop[T:Manifest](index: Exp[Int], m:Manifest[T]) extends DefWithManifest[T,DeliteArray[T]] // pass in manifest explicitly so it becomes part of equality (cse) check
+  case class DeliteArrayEmptyInLoop[T:Manifest](index: Exp[Int], m: Manifest[T]) extends DefWithManifest[T,DeliteArray[T]] // pass in manifest explicitly so it becomes part of equality (cse) check
   case class DeliteArrayLength[T:Manifest](da: Exp[DeliteArray[T]]) extends DefWithManifest[T,Int]
   case class DeliteArrayApply[T:Manifest](da: Exp[DeliteArray[T]], i: Exp[Int]) extends DefWithManifest[T,T]
   case class DeliteArrayUpdate[T:Manifest](da: Exp[DeliteArray[T]], i: Exp[Int], x: Exp[T]) extends AtomicWriteDef[T] {

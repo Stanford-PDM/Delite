@@ -49,6 +49,11 @@ object DeliteBuild extends Build {
   lazy val dsls = Project("dsls", file("dsls"), settings = virtBuildSettings) aggregate(optiql)
   lazy val optiql = Project("optiql", file("dsls/optiql"), settings = virtBuildSettings) dependsOn(framework, deliteTest)
 
+  val simpleSettings = virtBuildSettings ++ Seq(
+    scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked")
+  )
+  lazy val simple = Project("simple", file("dsls/simple"), settings = simpleSettings) dependsOn(framework, deliteTest)
+
   lazy val apps = Project("apps", file("apps"), settings = virtBuildSettings) aggregate(optiqlApps)
   lazy val optiqlApps = Project("optiql-apps", file("apps/optiql"), settings = virtBuildSettings) dependsOn(optiql)
 

@@ -13,10 +13,10 @@ trait SimpleVectorApp extends SimpleVectorApplication {
     val z = x + y
     z.pprint
 
-    //val f = z.filter
-    //f.pprint
+    val f = z.filter(_ % 2 == 1)
+    f.pprint
     
-    //val res = z.sum
-    //println(res)
+    val res = z.sum
+    println(res)
   }
 }
