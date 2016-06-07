@@ -366,7 +366,7 @@ trait DeliteArrayOpsExp extends DeliteArrayCompilerOps with DeliteArrayStructTag
     case SimpleStruct(SoaTag(tag, length), elems) => struct(SoaTag(tag, f(length)), elems map { case (k,v) => (k, f(v)) })
     case e@DeliteArrayNew(l,m,t) => darray_new_immutable(f(l))(m,pos)
     case e@DeliteArraySingletonInLoop(elem, index) => reflectPure(DeliteArraySingletonInLoop(f(elem), f(index)))(mtype(manifest[A]),pos)
-    case e@DeliteArrayEmptyInLoop(index, m) => reflectPure(DeliteArrayEmptyInLoop(f(index), m))(mtype(m), pos)
+    case e@DeliteArrayEmptyInLoop(index, m) => reflectPure(DeliteArrayEmptyInLoop(f(index), m))(mtype(manifest[A]), pos)
     case DeliteArrayLength(a) => darray_length(f(a))
     case e@DeliteArrayApply(a,x) => darray_apply(f(a),f(x))(e.mA,pos)
     case e@DeliteArrayUpdate(l,i,r) => darray_unsafe_update(f(l),f(i),f(r))

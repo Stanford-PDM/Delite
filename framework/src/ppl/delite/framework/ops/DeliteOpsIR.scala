@@ -179,7 +179,8 @@ trait DeliteOpsExpIR extends DeliteReductionOpsExp with StencilExp with NestedLo
   case object CollectFlatMap extends DeliteCollectType
 
   /** Determines whether the collect represents a special case. */
-  def getCollectElemType(collect: DeliteCollectBaseElem[_,_]): DeliteCollectType
+  def getCollectElemType(iFunc: Block[DeliteCollection[_]], unknownOutputSize: Boolean): DeliteCollectType
+  def getCollectElemType(collect: DeliteCollectBaseElem[_,_]): DeliteCollectType = getCollectElemType(collect.iFunc, collect.unknownOutputSize)
 
   /** This LoopElem is used for all flatMap-type operations (loops that produce
     * an output collection of type CA). There are two different output

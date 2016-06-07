@@ -21,6 +21,18 @@ trait MultiloopSoATransformWithReduceExp extends MultiloopSoATransformExp {
 
 }
 
+/**
+  * The idea behind the soa transformer is just to replace a map over a struct type (say a vector) 
+  * with a map over an array and then create the vector at the end after mapping. 
+  * For example:
+  *   vector.map(f) -> Vector(vector.getArray.map(f))
+  * which allows the struct field bypass rewrites in lms to dce all the vector wrappers
+  *
+  * If the element type of the map is a struct, it splits the loop into a loop per field
+  * the dce engine kills off unused fields and then the remaining fields are fused back 
+  * together in the trait at the bottom of the file (augments Tiark's fusion algorithm) // TODO DAMIEN update this
+  */
+
 trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform with DeliteApplication
   with DeliteOpsExp with DeliteArrayFatExp { self =>
 
@@ -68,135 +80,71 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
     }
   }
 
-
-  private def section(block: => Unit): Unit = {
-    block
-    Console.println("\n")
-  }
-
-  private def printD(s: String): Unit = {
-    Console.println(("=" * 10) + " " + s)
-  }
-
-  private def printlog(s: String): Unit = {
-    printD("[LOG] " + s)
-  }
-
-  /* @brief TODO: DAMIEN
-   *
-   * @size  The size of the loop
-   * @v     The loop variable
-   * @body  The body of the loop (depends on v)
-   */
+  //collect elems: unwrap outer struct if return type is a Struct && perform SoA transform if element type is a Struct
   def soaCollect[A:Manifest, I<:DeliteCollection[A]:Manifest, CA<:DeliteCollection[A]:Manifest]
       (size: Exp[Int], v: Sym[Int], body: DeliteCollectElem[A, I, CA])(implicit pos: SourceContext): Option[Exp[CA]] = {
 
-    section {
-      printD("Running soaCollect")
-      printD(s"getCollectElemType(body) = ${getCollectElemType(body)}")
-      printD(s"body = $body")
-      printD(s"body.buf = ${body.buf}")
-      body.buf.alloc match {
-        case Block(Def(Reify(Def(t), _, _))) => printD(s"body.buf.alloc = Block(Reify($t))")
-        case Block(Def(t)) => printD(s"body.buf.alloc = Block($t)")
-        case _ => printD(s"body.buf.alloc = ${body.buf.alloc}")
-      }
-
-      body.iFunc match {
-        case Block(Def(Reify(Def(t), _, _))) => printD(s"body.iFunc = Block(Reify($t))")
-        case Block(Def(t)) => printD(s"body.iFunc = Block($t)")
-        case _ => printD(s"body.iFunc = ${body.iFunc}")
-      }
-    }
-    
-
-    
     val alloc: Block[I] = t(body.buf.alloc)
+
     alloc match {
 
       case StructBlock(tag, elems) =>
         
-        // TODO: DAMIEN understand and Document function
-        def copyLoop[B:Manifest](f: Block[B]): Exp[DeliteArray[B]] = body.buf match {
-          case out: DeliteCollectFlatOutput[_,_,_] => f match {
-            case Block(Def(DeliteArrayApply(x, iv))) if iv.equals(v) =>
-              x.asInstanceOf[Exp[DeliteArray[B]]] //eliminate identity function loop
-            case _ => 
-              val elemV = fresh[B]
-              val sizeV = fresh[Int]
-              val allocV = reflectMutableSym(fresh[DeliteArray[B]])
-              val tv = t(v).asInstanceOf[Sym[Int]]
-              val elemF = fresh[DeliteCollection[B]]
-              val indexF = fresh[Int]
+        // Create new loop to produce DeliteArray[B] from f
+        def copyLoop[B:Manifest](f: Block[B], c: Option[Exp[Boolean]]): Exp[DeliteArray[B]] = f match {
+          case Block(Def(DeliteArrayApply(x,iv))) if iv.equals(v) && c == None =>
+            x.asInstanceOf[Exp[DeliteArray[B]]] //eliminate identity function loop
 
-              printD(s"elemV = $elemV")
-              printD(s"sizeV = $sizeV")
-              printD(s"allocV = $allocV")
-              printD(s"tv = $tv")
-              printD(s"elemF = $elemF")
-              printD(s"indexF = $indexF")
-
-              simpleLoop(t(size), tv, 
-                DeliteCollectElem[B,DeliteArray[B],DeliteArray[B]](
-                  buf = 
-                    DeliteCollectFlatOutput[B,DeliteArray[B],DeliteArray[B]](
-                      eV = elemV,
-                      sV = sizeV,
-                      allocVal = allocV,
-                      alloc = reifyEffects(DeliteArray[B](sizeV)),
-                      update =  reifyEffects(dc_update(allocV, tv, elemV)),
-                      finalizer = reifyEffects(allocV)
-                    ),
-                  iFunc = reifyEffects(DeliteArraySingletonInLoop(f, tv)),
-                  unknownOutputSize = body.unknownOutputSize,
-                  numDynamicChunks = body.numDynamicChunks,
-                  eF = elemF,
-                  iF = indexF,
-                  sF = reifyEffects(dc_size(elemF)),
-                  aF = reifyEffects(dc_apply(elemF, indexF))
-                )
-              )
-
-          }
-
-          case out: DeliteCollectBufferOutput[_,_,_] =>
+          case _ =>   
             val elemV = fresh[B]
             val sizeV = fresh[Int]
-            val startIdx = fresh[Int]
-            val endIdx = fresh[Int]
             val allocV = reflectMutableSym(fresh[DeliteArray[B]])
-            val allocV2 = fresh[DeliteArray[B]]
             val tv = t(v).asInstanceOf[Sym[Int]]
             val elemF = fresh[DeliteCollection[B]]
             val indexF = fresh[Int]
 
-            printD(s"elemV = $elemV")
-            printD(s"sizeV = $sizeV")
-            printD(s"allocV = $allocV")
-            printD(s"tv = $tv")
-            printD(s"elemF = $elemF")
-            printD(s"indexF = $indexF")
+            val simpleFunc = reifyEffects(DeliteArraySingletonInLoop(f, v))
+            val newFunc = c.fold{ simpleFunc }{ cond => 
+              reifyEffects(IfThenElse(cond, simpleFunc, reifyEffects(DeliteArrayEmptyInLoop(v, manifest[B]))))
+            }
+
+            val newBuf = getOutputStrategy(body) match {
+              case OutputFlat => 
+                DeliteCollectFlatOutput[B,DeliteArray[B],DeliteArray[B]](
+                  eV = elemV,
+                  sV = sizeV,
+                  allocVal = allocV,
+                  alloc = reifyEffects(DeliteArray[B](sizeV)),
+                  update =  reifyEffects(dc_update(allocV, tv, elemV)),
+                  finalizer = reifyEffects(allocV)
+                )
+              case OutputBuffer => 
+                val allocV2 = fresh[DeliteArray[B]]
+                val startIdx = fresh[Int]
+                val endIdx = fresh[Int]
+
+                DeliteCollectBufferOutput[B,DeliteArray[B],DeliteArray[B]](
+                  eV = elemV,
+                  sV = sizeV,
+                  iV = startIdx,
+                  iV2 = endIdx,
+                  allocVal = allocV,
+                  aV2 = allocV2,
+                  alloc = reifyEffects(DeliteArray[B](sizeV)),
+                  update =  reifyEffects(dc_update(allocV, tv, elemV)),
+                  append = reifyEffects(dc_append(allocV, tv, elemV)),
+                  appendable = reifyEffects(dc_appendable(allocV, tv, elemV)),
+                  setSize = reifyEffects(dc_set_logical_size(allocV, sizeV)),
+                  allocRaw = reifyEffects(dc_alloc[B,DeliteArray[B]](allocV, sizeV)),
+                  copyRaw = reifyEffects(dc_copy(allocV2, startIdx, allocV, endIdx, sizeV)),
+                  finalizer = reifyEffects(allocV)
+                )
+            }
 
             simpleLoop(t(size), tv, 
               DeliteCollectElem[B,DeliteArray[B],DeliteArray[B]](
-                buf = 
-                  DeliteCollectBufferOutput[B,DeliteArray[B],DeliteArray[B]](
-                    eV = elemV,
-                    sV = sizeV,
-                    iV = startIdx,
-                    iV2 = endIdx,
-                    allocVal = allocV,
-                    aV2 = allocV2,
-                    alloc = reifyEffects(DeliteArray[B](sizeV)),
-                    update =  reifyEffects(dc_update(allocV, tv, elemV)),
-                    append = reifyEffects(dc_append(allocV, tv, elemV)),
-                    appendable = reifyEffects(dc_appendable(allocV, tv, elemV)),
-                    setSize = reifyEffects(dc_set_logical_size(allocV, sizeV)),
-                    allocRaw = reifyEffects(dc_alloc[B,DeliteArray[B]](allocV, sizeV)),
-                    copyRaw = reifyEffects(dc_copy(allocV2, startIdx, allocV, endIdx, sizeV)),
-                    finalizer = reifyEffects(allocV)
-                  ),
-                iFunc = reifyEffects(DeliteArraySingletonInLoop(f, tv)),
+                buf = newBuf,
+                iFunc = newFunc,
                 unknownOutputSize = body.unknownOutputSize,
                 numDynamicChunks = body.numDynamicChunks,
                 eF = elemF,
@@ -206,11 +154,12 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
               )
             )
         }
+        
 
-        def soaTransform[B:Manifest](tag: StructTag[B], elems: Seq[(String, Exp[Any])]): Exp[DeliteArray[B]] = {
+        def soaTransform[B:Manifest](tag: StructTag[B], elems: Seq[(String, Exp[Any])], cond: Option[Exp[Boolean]]): Exp[DeliteArray[B]] = {
           val newElems = elems map {
-            case (index, e @ Def(Struct(t, es))) => (index, soaTransform(t,es)(e.tp))
-            case (index, e) => (index, copyLoop(Block(e))(e.tp))
+            case (index, e @ Def(Struct(t, es))) => (index, soaTransform(t, es, cond)(e.tp))
+            case (index, e) => (index, copyLoop(Block(e), cond)(e.tp))
           }
           val sz = getOutputStrategy(body) match {
             case OutputFlat => t(size)
@@ -219,6 +168,7 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
             // can we just grab the size out of the activation record somehow?
             case OutputBuffer => newElems(0)._2.length 
           }
+
           struct[DeliteArray[B]](SoaTag(tag, sz), newElems)
         }
 
@@ -230,22 +180,25 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
           return None
         }
 
-        val func = getCollectElemType(body) match {
-          case CollectAnyMap(elem, _) => elem
-          case CollectFilter(_, _, elem, _, _) => elem
+        val (func: Block[A], cond) = getCollectElemType(t(body.iFunc)) match {
+          case CollectAnyMap(elem, _) => 
+            (elem, None)
+          case CollectFilter(_, cond, elem, _, _) => 
+            (elem, Some(cond))
           case CollectFlatMap => // TODO: can we change this ?
             printlog("unable to transform flatmap elem")
             return None
         }
 
-        val newLoop = t(func) match {
+        val newLoop = func match {
           case u@Block(Def(a@Struct(ta, es))) =>
             printlog("*** SOA " + u + " / " + a)
-            soaTransform(ta, es)
+            soaTransform(ta, es, cond)
           case f2@Block(Def(a)) =>
             printlog("*** Unable to SOA " + f2 + " / " + a)
-            copyLoop(f2)
-          case f2 => copyLoop(f2)
+            copyLoop(f2, cond)
+          case f2 => 
+            copyLoop(f2, cond)
         }
 
         val res = if (isSubtype(manifest[I].erasure, classOf[DeliteArray[_]])) {
@@ -271,6 +224,7 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
               case _ => (f, t(v))
             }
           }
+
           struct[I](tag, newElems)
         }
 

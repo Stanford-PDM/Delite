@@ -213,24 +213,22 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
     }
   }
 
-  override def getCollectElemType(elem: DeliteCollectBaseElem[_,_]): DeliteCollectType = {
-    elem.iFunc match {
-      case ReifyResultEffects((iFuncRes, effects)) => iFuncRes match {
-        case Def(EatReflect(DeliteArraySingletonInLoop(siElem, _))) =>
-          if(elem.unknownOutputSize)
-            CollectDynamicMap(siElem, effects)
-          else
-            CollectMap(siElem, effects)
+  override def getCollectElemType(iFunc: Block[DeliteCollection[_]], unknownOutputSize: Boolean = false): DeliteCollectType = iFunc match {
+    case ReifyResultEffects((iFuncRes, effects)) => iFuncRes match {
+      case Def(EatReflect(DeliteArraySingletonInLoop(siElem, _))) =>          
+        if(unknownOutputSize)
+          CollectDynamicMap(siElem, effects)
+        else
+          CollectMap(siElem, effects)
 
-        case Def(EatReflect(Conditional(cond, thenp, elsep))) => (thenp, elsep) match {
-          case (ReifyResultEffects((Def(EatReflect(DeliteArraySingletonInLoop(thenElem,_)))), thenEffects),
-          ReifyResultEffects((Def(EatReflect(DeliteArrayEmptyInLoop(_,_))), elseEffects))) =>
-            CollectFilter(effects, cond, thenElem, thenEffects, elseEffects)
-          case _ => CollectFlatMap
-        }
-
+      case Def(EatReflect(Conditional(cond, thenp, elsep))) => (thenp, elsep) match {
+        case (ReifyResultEffects((Def(EatReflect(DeliteArraySingletonInLoop(thenElem,_)))), thenEffects),
+        ReifyResultEffects((Def(EatReflect(DeliteArrayEmptyInLoop(_,_))), elseEffects))) =>
+          CollectFilter(effects, cond, thenElem, thenEffects, elseEffects)
         case _ => CollectFlatMap
       }
+      
+      case _ => CollectFlatMap
     }
   }
 
