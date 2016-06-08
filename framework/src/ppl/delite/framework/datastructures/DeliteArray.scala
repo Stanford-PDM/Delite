@@ -389,7 +389,7 @@ trait DeliteArrayOpsExp extends DeliteArrayCompilerOps with DeliteArrayStructTag
     case e@DeliteArraySortIndices(l,s,c) => reflectPure(DeliteArraySortIndices(f(l), (f(s._1).asInstanceOf[Sym[Int]],f(s._2).asInstanceOf[Sym[Int]]), f(c))(e.mA))(mtype(manifest[A]),implicitly[SourceContext])
     case Reflect(SimpleStruct(SoaTag(tag, length), elems), u, es) => reflectMirrored(Reflect(SimpleStruct(SoaTag(tag, f(length)), elems map { case (k,v) => (k, f(v)) }), mapOver(f,u), f(es)))(mtype(manifest[A]), pos)
     case Reflect(e@DeliteArrayNew(l,m,t), u, es) => reflectMirrored(Reflect(DeliteArrayNew(f(l),m,t), mapOver(f,u), f(es)))(mtype(manifest[A]), pos)
-    case Reflect(e@DeliteArraySingletonInLoop(block, index), u, es) => reflectMirrored(Reflect(DeliteArraySingletonInLoop(reifyEffectsHere(f.reflectBlock(block))(mtype(manifest[A].typeArguments(0))), f(index))(e.mA), mapOver(f,u), f(es)))(mtype(manifest[A]), pos)
+    case Reflect(e@DeliteArraySingletonInLoop(block, index), u, es) => reflectMirrored(Reflect(DeliteArraySingletonInLoop(f(block), f(index))(e.mA), mapOver(f,u), f(es)))(mtype(manifest[A]), pos)
     case Reflect(e@DeliteArrayEmptyInLoop(index, m), u, es) => reflectMirrored(Reflect(DeliteArrayEmptyInLoop(f(index), m)(e.mA), mapOver(f,u), f(es)))(mtype(manifest[A]), pos)
     case Reflect(e@DeliteArrayLength(a), u, es) => reflectMirrored(Reflect(DeliteArrayLength(f(a))(e.mA), mapOver(f,u), f(es)))(mtype(manifest[A]), pos)
     case Reflect(e@DeliteArrayApply(l,r), u, es) => reflectMirrored(Reflect(DeliteArrayApply(f(l),f(r))(e.mA), mapOver(f,u), f(es)))(mtype(manifest[A]), pos)

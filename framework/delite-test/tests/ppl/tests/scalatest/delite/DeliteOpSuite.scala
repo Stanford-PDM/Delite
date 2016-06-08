@@ -527,24 +527,24 @@ class DeliteOpSuite extends DeliteSuite {
   override def enforceFullCoverage = true
   cppWhiteList ++= Seq("ArrayNew") //used in Foreach
 
-  //def testDeliteMap() { compileAndTest(DeliteMapSuiteRunner) }
-  //def testDeliteZip() { compileAndTest(DeliteZipSuiteRunner) }
-  //def testDeliteReduce() { compileAndTest(DeliteReduceSuiteRunner) }
-//  //def testDeliteReduce2() { compileAndTest(DeliteReduce2SuiteRunner) }
-  //def testDeliteZipWithReduceTuple() { compileAndTest(DeliteZipWithReduceTupleSuiteRunner) }
-  //def testDeliteMapReduce() { compileAndTest(DeliteMapReduceSuiteRunner) }
+  def testDeliteMap() { compileAndTest(DeliteMapSuiteRunner) }
+  // def testDeliteZip() { compileAndTest(DeliteZipSuiteRunner) }
+  // def testDeliteReduce() { compileAndTest(DeliteReduceSuiteRunner) }
+  // //def testDeliteReduce2() { compileAndTest(DeliteReduce2SuiteRunner) }
+  // def testDeliteZipWithReduceTuple() { compileAndTest(DeliteZipWithReduceTupleSuiteRunner) }
+  // def testDeliteMapReduce() { compileAndTest(DeliteMapReduceSuiteRunner) }
   def testDeliteFilter() { compileAndTest(DeliteFilterSuiteRunner) }
-  //def testDeliteNestedReduce() { compileAndTest(DeliteNestedReduceSuiteRunner) }
-  //def testDeliteNestedMapReduce() { compileAndTest(DeliteNestedMapReduceSuiteRunner) }
-  //def testDeliteHorizontalElems() { compileAndTest(DeliteHorizontalElemsSuiteRunner) }
-  //def testDeliteIfThenElse() { compileAndTest(DeliteIfThenElseSuiteRunner) }
+  // def testDeliteNestedReduce() { compileAndTest(DeliteNestedReduceSuiteRunner) }
+  // def testDeliteNestedMapReduce() { compileAndTest(DeliteNestedMapReduceSuiteRunner) }
+  // def testDeliteHorizontalElems() { compileAndTest(DeliteHorizontalElemsSuiteRunner) }
+  def testDeliteIfThenElse() { compileAndTest(DeliteIfThenElseSuiteRunner) }
 
-  //def testDeliteFlatMap() { compileAndTest(DeliteFlatMapSuiteRunner, checkMultiLoop = false) }
-  //def testDeliteForeach() { compileAndTest(DeliteForeachSuiteRunner, checkMultiLoop = false) }
-  //def testDeliteNestedMap() { compileAndTest(DeliteNestedMapSuiteRunner, checkMultiLoop = false) }
-  //def testDeliteNestedZip() { compileAndTest(DeliteNestedZipSuiteRunner, checkMultiLoop = false) }
-  //def testDeliteNestedForeach() { compileAndTest(DeliteNestedForeachSuiteRunner, checkMultiLoop = false) }
-  //def testDeliteGroupBy() { compileAndTest(DeliteGroupBySuiteRunner, checkMultiLoop = false) }
-  //def testDeliteGroupByReduce() { compileAndTest(DeliteGroupByReduceSuiteRunner, checkMultiLoop = false) }
-  //def testDeliteFileReader() { compileAndTest(DeliteFileReaderSuiteRunner, checkMultiLoop = false, enforceFullCoverage = false) }
+  // def testDeliteFlatMap() { compileAndTest(DeliteFlatMapSuiteRunner, checkMultiLoop = false) }
+  def testDeliteForeach() { compileAndTest(DeliteForeachSuiteRunner, checkMultiLoop = false) }
+  // def testDeliteNestedMap() { compileAndTest(DeliteNestedMapSuiteRunner, checkMultiLoop = false) }
+  // def testDeliteNestedZip() { compileAndTest(DeliteNestedZipSuiteRunner, checkMultiLoop = false) }
+  // def testDeliteNestedForeach() { compileAndTest(DeliteNestedForeachSuiteRunner, checkMultiLoop = false) }
+  // def testDeliteGroupBy() { compileAndTest(DeliteGroupBySuiteRunner, checkMultiLoop = false) }
+  // def testDeliteGroupByReduce() { compileAndTest(DeliteGroupByReduceSuiteRunner, checkMultiLoop = false) }
+  // def testDeliteFileReader() { compileAndTest(DeliteFileReaderSuiteRunner, checkMultiLoop = false, enforceFullCoverage = false) }
 }
