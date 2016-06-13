@@ -180,12 +180,13 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
           return None
         }
 
+        // TODO: DAMIEN: What about effects ? 
         val (func: Block[A], cond) = getCollectElemType(t(body.iFunc)) match {
-          case CollectAnyMap(elem, _) => 
+          case CollectAnyMap(elem, effects) => 
             (elem, None)
-          case CollectFilter(_, cond, elem, _, _) => 
+          case CollectFilter(otherEffects, cond, elem, thenEffects, elseEffects) =>
             (elem, Some(cond))
-          case CollectFlatMap => // TODO: can we change this ?
+          case CollectFlatMap => // TODO:DAMIEN: can we change this ?
             printlog("unable to transform flatmap elem")
             return None
         }

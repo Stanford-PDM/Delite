@@ -81,6 +81,105 @@ trait DeliteKernelCodegen extends GenericFatCodegen {
     val inVals = inputVals(rhs)
     val inVars = inputVars(rhs)
 
+
+    object GetDef {
+      def unapply(a: Any): Option[Def[Any]] = a match {
+        case Block(b) => unapply(b)
+        case Reify(r, _, _) => unapply(r)
+        case Reflect(r, _, _) => unapply(r)
+        case Def(t) => unapply(t)
+        case d: Def[_] => Some(d)
+        case _ => None
+      } 
+    }
+
+    object GetConst {
+      def unapply(a: Any): Option[Const[Any]] = a match {
+        case Block(b) => unapply(b)
+        case Reify(r, _, _) => unapply(r)
+        case Reflect(r, _, _) => unapply(r)
+        case c: Const[_] => Some(c)
+        case _ => None
+      } 
+    }
+
+    object GetSym {
+      def unapply(a: Any): Option[Sym[Any]] = a match {
+        case Block(b) => unapply(b)
+        case Reify(r, _, _) => unapply(r)
+        case Reflect(r, _, _) => unapply(r)
+        case s: Sym[_] => Some(s)
+        case _ => None
+      }
+    }
+
+    def printElem(name: String, elem: Any): String = {
+      def originalPos(pos: scala.reflect.SourceContext): scala.reflect.SourceContext = pos.parent.fold(pos)(originalPos)
+      def allContexts(p: scala.reflect.SourceContext): List[scala.reflect.SourceContext] = p.parent.fold(List(p))(parent => p :: allContexts(parent))  
+      lazy val elemString = elem match {
+        case GetDef(deff) => deff.toString
+        case GetSym(s) => "*synthetic*"
+        case _ => elem.toString
+      }
+      elem match {
+        case GetSym(s@Sym(id)) => 
+          val pos = if (s.pos.isEmpty) "no position" else s.pos.map(originalPos).mkString(" - ")
+          val fullPos = s.pos.map(allContexts(_).mkString("\n")).mkString("\n", "\n-----\n", "\n")
+          s"[$name] x$id: ${s.tp} = $elemString ($pos) $fullPos"
+        case GetConst(c) => 
+          s"[$name] $c: ${c.tp}"
+        case _ => 
+          s"[$name] $elemString"
+      }
+    }
+
+    def prettyComment(s: List[String]): String = s.mkString("/*\n * ", "\n * ", " \n */")
+    
+    //def info(x: Sym[Any]): String = s"type = ${x.tp}, pos = ${x.pos.mkString(" - ")}"
+
+    val fatString = rhs match { 
+      case SimpleFatLoop(size, v, bodies) => 
+        val stringBodies = bodies.map { x => 
+          var elems = List.empty[String]
+          elems = elems :+ x.toString
+          x match {
+            case collect: DeliteCollectBaseElem[_,_] => 
+              val elemType = getCollectElemType(collect)
+              elems = elems :+ s"type: $elemType"
+              elemType match {
+                case anymap@CollectAnyMap(elem, effects) => 
+                  elems = elems :+ printElem("elem", elem)
+                  elems = elems ++ effects.zipWithIndex.map{ case (effect, idx) => printElem(s"effect#${idx + 1}", effect) }
+                case _ => 
+              }
+            case _ => 
+          }
+          elems.mkString("\t", "\n\t", "\n")
+        }.mkString("\n")
+        
+        s"""|
+        |FatLoop:
+        |========
+        |${printElem("size", size)}
+        |${printElem("v", v)}
+        |bodies: 
+        |$stringBodies
+        |""".stripMargin
+      case _ => ""
+    }
+
+    val syms = sym.zipWithIndex.flatMap { case (s, idx) => s"${printElem(s"sym#${idx + 1}", s)}\n".lines }
+
+    kstream.println(
+      prettyComment(
+        List("This is a simple comment to add some informations to my kernels", "") ++
+        s"${printElem("rhs", rhs)}\n\n".lines ++
+        syms ++
+        fatString.lines
+      )
+    )
+
+
     deliteKernel = rhs match {
       case op:AbstractFatLoop => true
       case op:AbstractFatIfThenElse => true

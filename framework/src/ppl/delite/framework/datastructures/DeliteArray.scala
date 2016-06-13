@@ -648,6 +648,8 @@ trait DeliteArrayFatExp extends DeliteArrayOpsExpOpt with StructFatExpOptCommon 
 trait DeliteArrayExtractors extends LoopFusionCore {
   this: DeliteOpsExp with DeliteArrayOpsExp =>
 
+  override def shouldDoFusion = Config.opfusionEnabled
+
   override def unapplySimpleIndex(e: Def[Any]): Option[(Exp[Any], Exp[Int])] = e match {
     case DeliteArrayApply(da, idx) => Some((da,idx))
     case _ => super.unapplySimpleIndex(e)

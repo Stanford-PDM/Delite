@@ -39,7 +39,7 @@ trait DeliteStructsExp extends StructExp { this: DeliteOpsExp =>
 
   override def reflectEffect[A:Manifest](d: Def[A], u: Summary)(implicit pos: SourceContext): Exp[A] =  d match {
     case s: AbstractStruct[_] => reflectEffectInternal(d, u)
-    case _ => super.reflectEffect(d,u)
+    case _ => super.reflectEffect(d,u)(manifest[A], pos)
   }
 
   //no shortcutting on mutable structs ...
