@@ -54,7 +54,7 @@ trait BaseDeliteOpsTraversalFat extends BaseLoopsTraversalFat {
   override def shouldApplyFusion(currentScope: Seq[Stm])(result: List[Exp[Any]]) = Config.opfusionEnabled
 }
 
-trait BaseGenDeliteOps extends BaseDeliteOpsTraversalFat with BaseGenLoopsFat with LoopFusionOpt with BaseGenStaticData {
+trait BaseGenDeliteOps extends BaseDeliteOpsTraversalFat with BaseGenLoopsFat with BaseGenStaticData {
   val IR: DeliteOpsExp
   import IR._
   //abstract override def emitValDef(sym: Sym[Any], rhs: String): Unit =

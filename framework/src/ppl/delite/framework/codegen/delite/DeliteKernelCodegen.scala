@@ -160,7 +160,7 @@ trait DeliteKernelCodegen extends GenericFatCodegen {
               }
             case _ =>
           }
-          elems.mkString("\t", "\n\t", "\n")
+          elems.flatMap(_.lines).mkString("\t", "\n\t", "\n")
         }.mkString("\n")
 
         s"""|
