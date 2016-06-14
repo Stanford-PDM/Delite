@@ -699,6 +699,14 @@ trait BaseGenDeliteArrayOps extends GenericFatCodegen {
     case _ => super.unapplySimpleDomain(e)
   }
 
+  override def emitNode(sym: Sym[Any], rhs: Def[Any]) = rhs match {
+    case DeliteArrayEmptyInLoop(_, _) =>
+      error("DeliteArrayEmptyInLoop cannot be genrated on its own (use getCollectElemType extractor to match CollectFilter nodes)")
+    case DeliteArraySingletonInLoop(_, _) =>
+      error("DeliteArraySingletonInLoop cannot be genrated on its own (use getCollectElemType extractor to match CollectFilter nodes)")
+    case _ => super.emitNode(sym, rhs)
+  }
+
 }
 
 trait ScalaGenDeliteArrayOps extends BaseGenDeliteArrayOps with ScalaGenAtomicOps
@@ -776,15 +784,6 @@ trait ScalaGenDeliteArrayOps extends BaseGenDeliteArrayOps with ScalaGenAtomicOp
         stream.println(quote(sym) + "(" + i + ") = " + quote(elems(i)))
       }
       stream.println(quote(sym))
-
-    case a@DeliteArraySingletonInLoop(elem, _) =>
-      emitBlock(elem)
-      emitValDef(sym, "Array(" + quote(getBlockResult(elem)) + ")")
-      if (Config.enableProfiler) emitLogOfArrayAllocation(sym.id, Const(1), a.mA.erasure.getSimpleName)
-
-    case a@DeliteArrayEmptyInLoop(_, m) =>
-      emitValDef(sym, "Array[" + remap(m) + "]()")
-      if (Config.enableProfiler) emitLogOfArrayAllocation(sym.id, Const(0), a.mA.erasure.getSimpleName)
 
     case DeliteArrayLength(da) =>
       emitValDef(sym, quote(da) + ".length")
@@ -1183,14 +1182,6 @@ trait CGenDeliteArrayOps extends CLikeGenDeliteArrayOps with CGenAtomicOps
       for (i <- 0 until elems.length) {
         stream.println(quote(sym) + "->update(" + i + ", " + quote(elems(i)) + ");")
       }
-    case a@DeliteArraySingletonInLoop(elem, _) =>
-      stream.println("// singletonInLoop")
-      emitBlock(elem)
-      emitValDef(sym, "new (" + resourceInfoSym + ") " + remap(sym.tp) + "( 1, " + resourceInfoSym + ")")
-      stream.println(quote(sym) + "->update(0, " + quote(getBlockResult(elem)) + ");")
-    case a@DeliteArrayEmptyInLoop(_, m) =>
-      stream.println("// emptyInLoop")
-      emitValDef(sym, "new (" + resourceInfoSym + ") " + remap(sym.tp) + "( 0, " + resourceInfoSym + ")")
     case DeliteArrayLength(da) =>
       emitValDef(sym, quote(da) + "->length")
     case DeliteArrayApply(da, idx) =>

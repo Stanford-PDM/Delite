@@ -122,41 +122,47 @@ trait DeliteKernelCodegen extends GenericFatCodegen {
         case _ => elem.toString
       }
       elem match {
-        case GetSym(s@Sym(id)) => 
+        case GetSym(s@Sym(id)) =>
           val pos = if (s.pos.isEmpty) "no position" else s.pos.map(originalPos).mkString(" - ")
           val fullPos = s.pos.map(allContexts(_).mkString("\n")).mkString("\n", "\n-----\n", "\n")
           s"[$name] x$id: ${s.tp} = $elemString ($pos) $fullPos"
-        case GetConst(c) => 
+        case GetConst(c) =>
           s"[$name] $c: ${c.tp}"
-        case _ => 
+        case _ =>
           s"[$name] $elemString"
       }
     }
 
     def prettyComment(s: List[String]): String = s.mkString("/*\n * ", "\n * ", " \n */")
-    
-    //def info(x: Sym[Any]): String = s"type = ${x.tp}, pos = ${x.pos.mkString(" - ")}"
 
     val fatString = rhs match { 
-      case SimpleFatLoop(size, v, bodies) => 
-        val stringBodies = bodies.map { x => 
+      case SimpleFatLoop(size, v, bodies) =>
+        val stringBodies = bodies.map { x =>
           var elems = List.empty[String]
           elems = elems :+ x.toString
           x match {
-            case collect: DeliteCollectBaseElem[_,_] => 
+            case collect: DeliteCollectBaseElem[_,_] =>
               val elemType = getCollectElemType(collect)
               elems = elems :+ s"type: $elemType"
               elemType match {
-                case anymap@CollectAnyMap(elem, effects) => 
+                case CollectAnyMap(elem, effects) =>
                   elems = elems :+ printElem("elem", elem)
                   elems = elems ++ effects.zipWithIndex.map{ case (effect, idx) => printElem(s"effect#${idx + 1}", effect) }
-                case _ => 
+                case CollectFilter(otherEffects, cond, elem, thenEffects, elseEffects) =>
+                  elems = elems :+ printElem("elem", elem)
+                  elems = elems :+ printElem("cond", cond)
+                  elems = elems ++ otherEffects.zipWithIndex.map{ case (effect, idx) => printElem(s"otherEffects#${idx + 1}", effect) }
+                  elems = elems ++ thenEffects.zipWithIndex.map{ case (effect, idx) => printElem(s"thenEffects#${idx + 1}", effect) }
+                  elems = elems ++ elseEffects.zipWithIndex.map{ case (effect, idx) => printElem(s"elseEffects#${idx + 1}", effect) }
+                case CollectFlatMap =>
+                  elems = elems :+ printElem("iFunc", collect.iFunc)
+                case _ =>
               }
-            case _ => 
+            case _ =>
           }
           elems.mkString("\t", "\n\t", "\n")
         }.mkString("\n")
-        
+
         s"""|
         |FatLoop:
         |========
