@@ -540,7 +540,7 @@ class DeliteOpSuite extends DeliteSuite {
   // def testDeliteIfThenElse() { compileAndTest(DeliteIfThenElseSuiteRunner) }
 
   def testDeliteFlatMap() { compileAndTest(DeliteFlatMapSuiteRunner, checkMultiLoop = false) }
-  def testDeliteForeach() { compileAndTest(DeliteForeachSuiteRunner, checkMultiLoop = false) }
+  // def testDeliteForeach() { compileAndTest(DeliteForeachSuiteRunner, checkMultiLoop = false) }
   // def testDeliteNestedMap() { compileAndTest(DeliteNestedMapSuiteRunner, checkMultiLoop = false) }
   // def testDeliteNestedZip() { compileAndTest(DeliteNestedZipSuiteRunner, checkMultiLoop = false) }
   // def testDeliteNestedForeach() { compileAndTest(DeliteNestedForeachSuiteRunner, checkMultiLoop = false) }
