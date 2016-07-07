@@ -350,6 +350,20 @@ trait DeliteArrayBufferOpsExp extends DeliteArrayBufferOps with DeliteCollection
   }
 }
 
+trait DeliteArrayBufferExtractors extends LoopFusionCore {
+  this: DeliteOpsExp with DeliteArrayBufferOpsExp =>
+  
+  // If SOA unwraps these, then the extractors from DeliteArray get used
+  override def unapplySimpleIndex(e: Def[Any]): Option[(Exp[Any], Exp[Int])] = e match {
+    case DeliteArrayApply(Def(FieldApply(d: DeliteArrayBuffer[_], "data")), index) => Some((d, index))
+    case _ => super.unapplySimpleIndex(e)
+  }
+  override def unapplySimpleDomain(e: Def[Any]): Option[Exp[Any]] = e match {
+    case FieldApply(d: DeliteArrayBuffer[_], "length") => Some(d)
+    case _ => super.unapplySimpleDomain(e)
+  }
+}
+
 trait ScalaGenDeliteArrayBufferOps extends ScalaGenEffect {
   val IR: DeliteArrayBufferOpsExp
 }

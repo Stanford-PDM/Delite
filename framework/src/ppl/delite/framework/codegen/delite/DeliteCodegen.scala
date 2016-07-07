@@ -5,7 +5,7 @@ import ppl.delite.framework.Config
 import ppl.delite.framework.ops.DeliteOpsExp
 
 import scala.virtualization.lms.internal.GenericFatCodegen
-import scala.virtualization.lms.common.{BaseGenStaticData, WorklistTransformer}
+import scala.virtualization.lms.common.{BaseGenStaticData, FixpointTransformer}
 
 import java.io.{FileWriter, BufferedWriter, File, PrintWriter}
 import scala.collection.immutable.Seq
@@ -22,7 +22,7 @@ trait DeliteCodegen extends GenericFatCodegen with BaseGenStaticData with ppl.de
   val generators: List[Generator]
 
   // should be set by DeliteApplication if there are any transformations to be run before codegen
-  var transformers: List[WorklistTransformer{val IR: DeliteCodegen.this.IR.type}] = Nil
+  var transformers: List[FixpointTransformer{val IR: DeliteCodegen.this.IR.type}] = Nil
 
   // per kernel, used by DeliteGenTaskGraph
   var controlDeps: List[Sym[Any]] = _
@@ -78,7 +78,7 @@ trait DeliteCodegen extends GenericFatCodegen with BaseGenStaticData with ppl.de
     val maxTransformIter = 3 // TODO: make configurable
     for (t <- transformers) {
       printlog("  Block before transformation: " + curBlock)
-      printlog("  map: " + t.nextSubst)
+      printlog("  map: " + t.getInfoString)
       var i = 0
       while (!t.isDone && i < maxTransformIter) {
         printlog("iter: " + i)

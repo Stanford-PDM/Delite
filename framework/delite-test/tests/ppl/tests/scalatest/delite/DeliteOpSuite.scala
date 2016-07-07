@@ -137,7 +137,7 @@ object DeliteReduce2SuiteRunner extends DeliteTestRunner with DeliteTestDSLAppli
 trait DeliteReduce2 extends DeliteTestBase {
   def main() = {
 
-    val v = DeliteArrayBuffer.fromFunction(10){ i => i+5 }
+    val v = DeliteArrayBuffer.fromFunction(10){ i => i + 5 }
     val s = v.reduce{ (a,b) => b }(0)
     collect(s == 14)
 
@@ -522,25 +522,25 @@ trait DeliteFileReader extends DeliteTestBase {
 }
 
 class DeliteOpSuite extends DeliteSuite {
-  // TODO: re-enable multiloop check
+  // TODO: DAMIEN: re-enable multiloop check
   override def checkMultiLoop = false
   override def enforceFullCoverage = true
   cppWhiteList ++= Seq("ArrayNew") //used in Foreach
 
-  def testDeliteMap() { compileAndTest(DeliteMapSuiteRunner) }
+  // def testDeliteMap() { compileAndTest(DeliteMapSuiteRunner) }
   // def testDeliteZip() { compileAndTest(DeliteZipSuiteRunner) }
   // def testDeliteReduce() { compileAndTest(DeliteReduceSuiteRunner) }
-  //def testDeliteReduce2() { compileAndTest(DeliteReduce2SuiteRunner) }
+  // def testDeliteReduce2() { compileAndTest(DeliteReduce2SuiteRunner) }
   // def testDeliteZipWithReduceTuple() { compileAndTest(DeliteZipWithReduceTupleSuiteRunner) }
   // def testDeliteMapReduce() { compileAndTest(DeliteMapReduceSuiteRunner) }
-  def testDeliteFilter() { compileAndTest(DeliteFilterSuiteRunner) }
+  // def testDeliteFilter() { compileAndTest(DeliteFilterSuiteRunner) }
   // def testDeliteNestedReduce() { compileAndTest(DeliteNestedReduceSuiteRunner) }
   // def testDeliteNestedMapReduce() { compileAndTest(DeliteNestedMapReduceSuiteRunner) }
   // def testDeliteHorizontalElems() { compileAndTest(DeliteHorizontalElemsSuiteRunner) }
   // def testDeliteIfThenElse() { compileAndTest(DeliteIfThenElseSuiteRunner) }
 
-  def testDeliteFlatMap() { compileAndTest(DeliteFlatMapSuiteRunner, checkMultiLoop = false) }
-  // def testDeliteForeach() { compileAndTest(DeliteForeachSuiteRunner, checkMultiLoop = false) }
+  // def testDeliteFlatMap() { compileAndTest(DeliteFlatMapSuiteRunner, checkMultiLoop = false) }
+  def testDeliteForeach() { compileAndTest(DeliteForeachSuiteRunner, checkMultiLoop = false) }
   // def testDeliteNestedMap() { compileAndTest(DeliteNestedMapSuiteRunner, checkMultiLoop = false) }
   // def testDeliteNestedZip() { compileAndTest(DeliteNestedZipSuiteRunner, checkMultiLoop = false) }
   // def testDeliteNestedForeach() { compileAndTest(DeliteNestedForeachSuiteRunner, checkMultiLoop = false) }

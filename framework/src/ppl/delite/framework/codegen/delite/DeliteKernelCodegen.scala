@@ -115,7 +115,6 @@ trait DeliteKernelCodegen extends GenericFatCodegen {
 
     def printElem(name: String, elem: Any): String = {
       def originalPos(pos: scala.reflect.SourceContext): scala.reflect.SourceContext = pos.parent.fold(pos)(originalPos)
-      def allContexts(p: scala.reflect.SourceContext): List[scala.reflect.SourceContext] = p.parent.fold(List(p))(parent => p :: allContexts(parent))  
       lazy val elemString = elem match {
         case GetDef(deff) => deff.toString
         case GetSym(s) => "*synthetic*"
@@ -124,8 +123,7 @@ trait DeliteKernelCodegen extends GenericFatCodegen {
       elem match {
         case GetSym(s@Sym(id)) =>
           val pos = if (s.pos.isEmpty) "no position" else s.pos.map(originalPos).mkString(" - ")
-          val fullPos = s.pos.map(allContexts(_).mkString("\n")).mkString("\n", "\n-----\n", "\n")
-          s"[$name] x$id: ${s.tp} = $elemString ($pos) $fullPos"
+          s"[$name] x$id: ${s.tp} = $elemString ($pos)"
         case GetConst(c) =>
           s"[$name] $c: ${c.tp}"
         case _ =>
@@ -158,6 +156,8 @@ trait DeliteKernelCodegen extends GenericFatCodegen {
                   elems = elems :+ printElem("iFunc", collect.iFunc)
                 case _ =>
               }
+            case DeliteForeachElem(func, _) =>
+              elems = elems :+ printElem("func", func)
             case _ =>
           }
           elems.flatMap(_.lines).mkString("\t", "\n\t", "\n")

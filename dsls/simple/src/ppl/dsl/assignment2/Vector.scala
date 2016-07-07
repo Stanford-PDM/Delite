@@ -165,6 +165,11 @@ trait VectorOpsExp extends VectorOps with DeliteCollectionOpsExp with DeliteStru
     else super.unapplyStructType
   }
 
+  override def containSyms(e: Any): List[Sym[Any]] = e match {
+    case NewVar(Def(Reflect(DeliteArrayBufferNew(_,_),_,_))) => Nil  //ignore nested mutability for Var(Array): this is only safe because we rewrite mutations on Var(Array) to atomic operations
+    case _ => super.containSyms(e)
+  }
+
 }
 
 /**

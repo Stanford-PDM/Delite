@@ -90,6 +90,9 @@ trait DeliteApplication extends DeliteOpsExp with ScalaCompile with DeliteTransf
 
     // set transformers to be applied before codegen
     deliteGenerator.transformers = transformers
+
+    println("DeliteTransformers")
+    for(tr <- transformers) println(s"transformer : $tr")
     //val distributedTransformer = new DistributedArrayTransformer{ val IR: DeliteApplication.this.type = DeliteApplication.this }
     //deliteGenerator.transformers :+= distributedTransformer
 

@@ -25,6 +25,8 @@ object DeliteBuild extends Build {
     libraryDependencies += "org.apache.hadoop" % "hadoop-client" % "2.7.1",
     libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.7.1",
 
+    libraryDependencies += "org.scala-debugger" %% "scala-debugger-api" % "1.0.0",
+
     retrieveManaged := true,
     scalacOptions += "-Yno-generic-signatures",
     scalacOptions += "-Yvirtualize"

@@ -8,7 +8,6 @@ import scala.virtualization.lms.internal.{CCodegen, GenerationFailedException, G
 import ppl.delite.framework.{Config, DeliteApplication, Util}
 import ppl.delite.framework.datastructures._
 import ppl.delite.framework.extern.lib._
-import ppl.delite.framework.transform.LoopSoAOpt
 import ppl.delite.framework.analysis.{NestedLoopMappingExp, StencilExp}
 
 import scala.collection.mutable.{HashMap, HashSet}

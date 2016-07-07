@@ -2,6 +2,7 @@ package ppl.delite.framework.codegen.delite.generators
 
 import collection.mutable.{ArrayBuffer, ListBuffer, HashMap}
 import java.io.{StringWriter, FileWriter, File, PrintWriter}
+import scala.virtualization.lms.common.CombineTTPScheduling
 import scala.virtualization.lms.internal.{GenericCodegen, CLikeCodegen, GPUCodegen, ScalaCodegen, GenerationFailedException}
 import scala.virtualization.lms.internal.Targets._
 import ppl.delite.framework.ops.DeliteCollection
@@ -10,12 +11,11 @@ import scala.reflect.SourceContext
 import ppl.delite.framework.codegen.delite.{DeliteCodegen, DeliteKernelCodegen}
 import ppl.delite.framework.ops._
 import ppl.delite.framework.Config
-import ppl.delite.framework.transform.LoopSoAOpt
 import ppl.delite.framework.datastructures.DeliteArray
 import ppl.delite.framework.analysis.{NestedLoopMappingAnalysis,StencilAnalysis}
 import ppl.delite.framework.datastructures.DeliteArrayFatExp
 
-trait DeliteGenTaskGraph extends DeliteCodegen with DeliteKernelCodegen with LoopSoAOpt {
+trait DeliteGenTaskGraph extends DeliteCodegen with DeliteKernelCodegen with CombineTTPScheduling {
   val IR: DeliteOpsExp
   import IR.{ __newVar => _, __assign => _, __ifThenElse => _ , _ }
 
