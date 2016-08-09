@@ -874,6 +874,12 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
     val dmCV = manifest[CV]
   }
 
+  override def blocks(e: Any): List[Block[Any]] = e match {
+    case op: DeliteOpFlatMapLike[_, _, _] => blocks(op.buf) ::: blocks(op.body)
+    case op: DeliteOpIndexedLoop => blocks(op.body)
+    case _ => super.blocks(e)
+  }
+
   ///////////////////////////
   // helpers
 
