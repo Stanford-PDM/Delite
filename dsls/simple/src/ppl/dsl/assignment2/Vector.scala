@@ -77,7 +77,7 @@ trait VectorOpsExp extends VectorOps with DeliteCollectionOpsExp with DeliteStru
   
   case class VectorSum[A:Manifest:Numeric](in: Exp[Vector[A]]) extends DeliteOpReduceZero[A] {
     val size = copyTransformedOrElse(_.size)(in.length)
-    val accInit = reifyEffects(unit(implicitly[Numeric[A]].zero))
+    def zero = unit(implicitly[Numeric[A]].zero)
     def reduce = (a, b) => a + b
   }
   
@@ -90,7 +90,7 @@ trait VectorOpsExp extends VectorOps with DeliteCollectionOpsExp with DeliteStru
   }
 
   case class VectorNew[A:Manifest](len: Exp[Int]) extends DeliteStruct[Vector[A]] {
-    val elems = copyTransformedElems(Seq("data" -> var_new(DeliteArrayBuffer[A](len)).e))
+    val elems = copyTransformedElems(Seq("data" -> var_new(DeliteArrayBuffer.fromFunction(len)(_ => unit(0))).e))
     val mA = manifest[A]
   }
 

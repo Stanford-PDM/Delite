@@ -7,16 +7,16 @@ object SimpleVectorAppRunner extends SimpleVectorApplicationRunner with SimpleVe
 trait SimpleVectorApp extends SimpleVectorApplication {
 
   def main() {
-    val x = Vector[Int](100) //+ 1
-    val y = Vector[Int](100) //+ 2
+    val x = Vector[Int](5) + 1
+    val y = Vector[Int](5) + 2
 
     val z = x + y
     z.pprint
 
-    /*val f = z.filter(_ % 2 == 1)
+    val f = z.filter(_ % 2 == 1)
     f.pprint
     
     val res = z.sum
-    println(res)*/
+    println(res)
   }
 }
