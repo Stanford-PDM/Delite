@@ -212,7 +212,6 @@ trait DeliteArrayBufferOpsExp extends DeliteArrayBufferOps with DeliteCollection
     extends DeliteOpReduceZero[A] {
 
     val size = copyTransformedOrElse(_.size)(in.length)
-    val accInit = reifyEffects(zero)
   }
 
   case class DeliteArrayBufferGroupBy[A:Manifest,K:Manifest](in: Exp[DeliteArrayBuffer[A]], keyFunc: Exp[A] => Exp[K]) 

@@ -541,7 +541,7 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
     * initialized with the init element, which is naturally returned on an
     * empty input. The init element should be a neutral element for the
     * operation, otherwise the number of chunks could change the end result. */
-  abstract class DeliteOpFoldLike[N: Manifest, O:Manifest](implicit ctx: SourceContext) extends DeliteOpCollectLoop[N, O] {
+  abstract class DeliteOpFoldLike[N: Manifest,O:Manifest](implicit ctx: SourceContext) extends DeliteOpCollectLoop[N, O] {
     type OpType <: DeliteOpFoldLike[N,O]
 
     // the fold function
@@ -576,31 +576,50 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
     ))
   }
 
-  /** This is a reduce operation with a zero element, which is a special case
-    * of fold. It is more efficient than the basic reduce because it doesn't
+/**
+    * Parallel map-reduction from a DeliteCollection[A] => R. But with a zero element.
+    * It is more efficient than the basic map reduce because it doesn't
     * need to check initialization, as the initial value is provided. When the
     * reduce input is empty, it returns the reduction of as many accInits as
     * there are chunks. See the reduce hierarchy for other examples of possible
     * flatMapLikeFunc bodies (map, filter, zip, ...).
     *
     * @param in       the input collection
+    * @param map      the mapping function; Exp[A] => Exp[O]
     * @param reduce   the reduction function; ([Exp[O],Exp[O]) => Exp[O]. Must
     *                 be associative.
-    * @param accInit  the initial element/mutable accumulator
-    * @param mutable  override with true if the accumulator is mutable
-    * @param size     the size of the input collections (should be the same)
+    * @param zero     the zero element
+    * @param size     the size of the input collection
     */
-  abstract class DeliteOpReduceZero[O:Manifest](implicit ctx: SourceContext) extends DeliteOpFoldLike[O,O] {
-    type OpType <: DeliteOpReduceZero[O]
+  abstract class DeliteOpMapReduceZero[A:Manifest,O:Manifest](implicit ctx: SourceContext) extends DeliteOpFoldLike[O,O] {
+    type OpType <: DeliteOpMapReduceZero[A, O]
 
     // supplied by subclass
-    val in: Exp[DeliteCollection[O]]
+    val in: Exp[DeliteCollection[A]]
     def reduce: (Exp[O], Exp[O]) => Exp[O]
+    def map: Exp[A] => Exp[O]
+    def zero: Exp[O]
 
+    override lazy val accInit: Block[O] = copyTransformedBlockOrElse(_.accInit)(reifyEffects(zero))
     override def foldPar(acc: Exp[O], add: Exp[O]): Exp[O] = reduce(acc, add)
     override def redSeq(x1: Exp[O], x2: Exp[O]): Exp[O] = reduce(x1, x2)
     override def flatMapLikeFunc(): Exp[DeliteCollection[O]] =
-      DeliteArray.singletonInLoop(dc_apply(in,this.v), this.v)
+      DeliteArray.singletonInLoop(map(dc_apply(in,this.v)), this.v)
+  }
+
+  /** This is a reduce operation with a zero element, which is a special case
+    * of fold.
+    *
+    * @param in       the input collection
+    * @param reduce   the reduction function; ([Exp[O],Exp[O]) => Exp[O]. Must
+    *                 be associative.
+    * @param zero     the zero element
+    * @param size     the size of the input collections (should be the same)
+    */
+  abstract class DeliteOpReduceZero[O:Manifest](implicit ctx: SourceContext) extends DeliteOpMapReduceZero[O,O] {
+    type OpType <: DeliteOpReduceZero[O]
+
+    override def map = { x: Exp[O] => x }
   }
 
   // ----- Foreach etc. ------

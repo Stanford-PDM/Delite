@@ -153,7 +153,6 @@ trait DeliteArrayOpsExp extends DeliteArrayCompilerOps with DeliteArrayStructTag
     extends DeliteOpReduceZero[A] {
 
     val size = copyTransformedOrElse(_.size)(in.length)
-    val accInit = copyTransformedBlockOrElse(_.accInit)(reifyEffects(zero))
   }
 
   case class DeliteArrayReduceException[A:Manifest](in: Exp[DeliteArray[A]], reduce: (Exp[A], Exp[A]) => Exp[A])(implicit ctx: SourceContext)

@@ -95,9 +95,9 @@ trait QueryableOpsExp extends QueryableOps with EffectExp with BaseFatExp with D
     val mR = manifest[R]
   }
 
-  case class QueryableSum[T:Manifest, N:Numeric:Manifest](in: Exp[Table[T]], map: Exp[T] => Exp[N]) extends DeliteOpMapReduce[T, N] {
+  case class QueryableSum[T:Manifest, N:Numeric:Manifest](in: Exp[Table[T]], map: Exp[T] => Exp[N]) extends DeliteOpMapReduceZero[T, N] {
     val size = copyTransformedOrElse(_.size)(in.size)
-    def zero = zeroType[N] //TODO: member of Numeric
+    def zero = unit(N.zero)
     def reduce = _ + _
 
     val N = implicitly[Numeric[N]]
