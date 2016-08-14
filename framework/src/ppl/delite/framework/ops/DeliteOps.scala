@@ -489,6 +489,29 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
       DeliteArray.singletonInLoop(map(dc_apply(in,this.v)), this.v)
   }
 
+
+  /** TODO: Damien: Documentation
+    * @param  in      the input collection
+    * @param  size    the size of the input collection
+    * @param  func    the mapping function; Exp[A] => Exp[R]
+    * @param  cond    the condition function
+    * @param  reduce  the reduction function; ([Exp[R],Exp[R]) => Exp[R]. Must be associative.
+    */
+  abstract class DeliteOpFilterReduce[A:Manifest,R:Manifest](implicit ctx: SourceContext)
+    extends DeliteOpReduceLike[R] {
+    type OpType <: DeliteOpFilterReduce[A,R]
+
+    // supplied by subclass
+    val in: Exp[DeliteCollection[A]]
+    def func: Exp[A] => Exp[R]
+    def reduce: (Exp[R], Exp[R]) => Exp[R]
+    def cond: Exp[A] => Exp[Boolean]
+
+    override def flatMapLikeFunc(): Exp[DeliteCollection[R]] =
+      IfThenElse(cond(dc_apply(in,this.v)), reifyEffects(DeliteArray.singletonInLoop(func(dc_apply(in,this.v)), v)), reifyEffects(DeliteArray.emptyInLoop[R](v)))
+
+  }
+
   /**
     * Parallel reduction of a DeliteCollection[A]. Reducing function must be associative.
     *
