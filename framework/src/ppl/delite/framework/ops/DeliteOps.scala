@@ -599,7 +599,7 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
     ))
   }
 
-/**
+  /**
     * Parallel map-reduction from a DeliteCollection[A] => R. But with a zero element.
     * It is more efficient than the basic map reduce because it doesn't
     * need to check initialization, as the initial value is provided. When the
@@ -628,6 +628,34 @@ trait DeliteOpsExp extends DeliteOpsExpIR with DeliteInternalOpsExp with DeliteC
     override def redSeq(x1: Exp[O], x2: Exp[O]): Exp[O] = reduce(x1, x2)
     override def flatMapLikeFunc(): Exp[DeliteCollection[O]] =
       DeliteArray.singletonInLoop(map(dc_apply(in,this.v)), this.v)
+  }
+
+  /**
+    *
+    * @param in       the input collection
+    * @param func      the mapping function; Exp[A] => Exp[O]
+    * @param cond     the condition function; Exp[A] => Exp[Boolean]
+    * @param reduce   the reduction function; ([Exp[O],Exp[O]) => Exp[O]. Must
+    *                 be associative.
+    * @param zero     the zero element
+    * @param size     the size of the input collection
+    */
+  abstract class DeliteOpFilterReduceZero[A:Manifest,O:Manifest](implicit ctx: SourceContext) extends DeliteOpFoldLike[O,O] {
+    type OpType <: DeliteOpFilterReduceZero[A, O]
+
+    // supplied by subclass
+    val in: Exp[DeliteCollection[A]]
+    def reduce: (Exp[O], Exp[O]) => Exp[O]
+    def func: Exp[A] => Exp[O]
+    def cond: Exp[A] => Exp[Boolean]
+    def zero: Exp[O]
+
+    override lazy val accInit: Block[O] = copyTransformedBlockOrElse(_.accInit)(reifyEffects(zero))
+    override def foldPar(acc: Exp[O], add: Exp[O]): Exp[O] = reduce(acc, add)
+    override def redSeq(x1: Exp[O], x2: Exp[O]): Exp[O] = reduce(x1, x2)
+    override def flatMapLikeFunc(): Exp[DeliteCollection[O]] ={
+      IfThenElse(cond(dc_apply(in,this.v)), reifyEffects(DeliteArray.singletonInLoop(func(dc_apply(in,this.v)), v)), reifyEffects(DeliteArray.emptyInLoop[O](v)))
+    }
   }
 
   /** This is a reduce operation with a zero element, which is a special case
