@@ -50,7 +50,7 @@ trait TableOpsExp extends TableOps with DeliteCollectionOpsExp with DeliteStruct
   def tableApply[T:Manifest](t: Exp[Table[T]], i: Exp[Int]): Exp[T] = tableRawData(t).apply(i)
 
   def tableObjectApply[T:Manifest](): Exp[Table[T]] = tableObjectApply(unit(16))
-  def tableObjectApply[T:Manifest](initSize: Exp[Int]): Exp[Table[T]] = struct(classTag[Table[T]], "data" -> fatal(unit("Table allocation within Delite Op not rewritten")), "size" -> initSize)
+  def tableObjectApply[T:Manifest](initSize: Exp[Int]): Exp[Table[T]] = struct(classTag[Table[T]], "data" -> DeliteArray[T](initSize), "size" -> initSize)
   def tableObjectApply[T:Manifest](data: Exp[DeliteArray[T]], size: Exp[Int]): Exp[Table[T]] = struct(classTag[Table[T]], "data" -> data, "size" -> size)
 
   def tableObjectRange(start: Exp[Int], end: Exp[Int]) = Table(DeliteArray.fromFunction(end-start)(i => i + start))
@@ -89,22 +89,22 @@ trait TableOpsExp extends TableOps with DeliteCollectionOpsExp with DeliteStruct
   }
   
   override def dc_set_logical_size[A:Manifest](x: Exp[DeliteCollection[A]], y: Exp[Int])(implicit ctx: SourceContext) = {
-    if (isTable(x)) fatal(unit("Table not unwrapped")) //dc_set_logical_size(tableRawData(asTable(x)), y)
+    if (isTable(x)) /*fatal(unit("Table not unwrapped"))*/ dc_set_logical_size(tableRawData(asTable(x)), y)
     else super.dc_set_logical_size(x,y)        
   }
   
   override def dc_update[A:Manifest](x: Exp[DeliteCollection[A]], n: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {
-    if (isTable(x)) fatal(unit("Table not unwrapped")) //dc_update(tableRawData(asTable(x)), n, y)
+    if (isTable(x)) /*fatal(unit("Table not unwrapped"))*/ dc_update(tableRawData(asTable(x)), n, y)
     else super.dc_update(x,n,y)        
   }
   
   override def dc_append[A:Manifest](x: Exp[DeliteCollection[A]], i: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {
-    if (isTable(x)) fatal(unit("Table not unwrapped")) //dc_append(tableRawData(asTable(x)), i, y)
+    if (isTable(x)) /*fatal(unit("Table not unwrapped"))*/ dc_append(tableRawData(asTable(x)), i, y)
     else super.dc_append(x,i,y)        
   }
 
   override def dc_appendable[A:Manifest](x: Exp[DeliteCollection[A]], i: Exp[Int], y: Exp[A])(implicit ctx: SourceContext) = {
-    if (isTable(x)) fatal(unit("Table not unwrapped"))
+    if (isTable(x)) /*fatal(unit("Table not unwrapped"))*/ dc_appendable(tableRawData(asTable(x)), i, y)
     else super.dc_appendable(x,i,y)
   }
   
