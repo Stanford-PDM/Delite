@@ -50,7 +50,7 @@ trait TableOpsExp extends TableOps with DeliteCollectionOpsExp with DeliteStruct
   def tableApply[T:Manifest](t: Exp[Table[T]], i: Exp[Int]): Exp[T] = tableRawData(t).apply(i)
 
   def tableObjectApply[T:Manifest](): Exp[Table[T]] = tableObjectApply(unit(16))
-  def tableObjectApply[T:Manifest](initSize: Exp[Int]): Exp[Table[T]] = struct(classTag[Table[T]], "data" -> DeliteArray[T](initSize), "size" -> initSize)
+  def tableObjectApply[T:Manifest](initSize: Exp[Int]): Exp[Table[T]] = tableObjectApply(DeliteArray[T](initSize),initSize)
   def tableObjectApply[T:Manifest](data: Exp[DeliteArray[T]], size: Exp[Int]): Exp[Table[T]] = struct(classTag[Table[T]], "data" -> data, "size" -> size)
 
   def tableObjectRange(start: Exp[Int], end: Exp[Int]) = Table(DeliteArray.fromFunction(end-start)(i => i + start))
@@ -114,10 +114,16 @@ trait TableOpsExp extends TableOps with DeliteCollectionOpsExp with DeliteStruct
   } 
   
   override def dc_copy[A:Manifest](src: Exp[DeliteCollection[A]], srcPos: Exp[Int], dst: Exp[DeliteCollection[A]], dstPos: Exp[Int], size: Exp[Int])(implicit ctx: SourceContext): Exp[Unit] = {
-    if (isTable(src) && isTable(dst)) {
-      fatal(unit("Table not unwrapped")) //dc_copy(tableRawData(asTable(src)), srcPos, tableRawData(asTable(dst)), dstPos, size)
-    }
-    else super.dc_copy(src,srcPos,dst,dstPos,size)
+    /*if (isTable(src) && isTable(dst)) {
+      /*fatal(unit("Table not unwrapped")) */ dc_copy(tableRawData(asTable(src)), srcPos, tableRawData(asTable(dst)), dstPos, size)
+    }*/
+    if(isTable(src)) {
+      dc_copy(tableRawData(asTable(src)), srcPos, dst, dstPos, size)
+    } else if(isTable(dst)) {
+      dc_copy(src, srcPos, tableRawData(asTable(dst)), dstPos, size)
+    } else {
+      super.dc_copy(src,srcPos,dst,dstPos,size)
+    } 
   }
 
 }
