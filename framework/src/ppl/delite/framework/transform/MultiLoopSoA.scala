@@ -246,7 +246,7 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
         t.replace(body.buf.allocVal, res) // TODO: use withSubstScope
         printlog("successfully transformed collect elem with type " + manifest[I].toString + " to " + res.toString)
         
-        if(Config.opfusionEnabled) {
+        if(Config.opfusionEnabled && toFuse.nonEmpty) {
           toFuse.reduce { (a, b) => 
             a registerFusion b
             a

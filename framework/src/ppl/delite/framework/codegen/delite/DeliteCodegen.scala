@@ -72,8 +72,18 @@ trait DeliteCodegen extends GenericFatCodegen with BaseGenStaticData with ppl.de
   }
 
   def runTransformations[A:Manifest](b: Block[A]): Block[A] = {
+    
+    val export = new scala.virtualization.lms.util.ExportTransforms {val IR: DeliteCodegen.this.IR.type = DeliteCodegen.this.IR}
+    for(t <- transformers){
+      export.addTransform(t)
+    }
+    val output = new java.io.PrintStream("trace.json")
+    export.withStream(output).run(b)
+
+
     printlog("DeliteCodegen: applying transformations")
     var curBlock = b
+
     printlog("  Transformers: " + transformers)
     val maxTransformIter = 3 // TODO: make configurable
     for (t <- transformers) {
