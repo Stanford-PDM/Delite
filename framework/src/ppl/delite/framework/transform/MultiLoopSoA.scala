@@ -87,6 +87,9 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
 
     val alloc: Block[I] = t(body.buf.alloc)
 
+    // register all of the loops that can be fused together if fusion is enabled
+    var toFuse: Seq[CanBeFused] = Seq.empty
+
     alloc match {
 
       case StructBlock(tag, elems) =>
@@ -142,7 +145,7 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
                 )
             }
 
-            simpleLoop(t(size), tv, 
+            val newLoop = simpleLoop(t(size), tv, 
               DeliteCollectElem[B,DeliteArray[B],DeliteArray[B]](
                 buf = newBuf,
                 iFunc = newFunc,
@@ -154,6 +157,16 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
                 aF = reifyEffects(dc_apply(elemF, indexF))
               )
             )
+
+            // register the new loop for fusion
+            if(Config.opfusionEnabled){
+              newLoop match {
+                case Def(c: CanBeFused) => toFuse :+= c
+                case _ => sys.error("Loop does not extend CanBeFused")
+              }
+            }
+
+            newLoop
         }
         
 
@@ -232,6 +245,14 @@ trait MultiloopSoATransformExp extends DeliteTransform with LoweringTransform wi
 
         t.replace(body.buf.allocVal, res) // TODO: use withSubstScope
         printlog("successfully transformed collect elem with type " + manifest[I].toString + " to " + res.toString)
+        
+        if(Config.opfusionEnabled) {
+          toFuse.reduce { (a, b) => 
+            a registerFusion b
+            a
+          }
+        }
+
         Some(t.getBlockResult(t(body.buf.finalizer)))
         
               
